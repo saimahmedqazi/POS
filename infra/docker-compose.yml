@@ -1,0 +1,20 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: saim-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: saim_pos
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    container_name: saim-redis
+    restart: always
+    ports:
+      - "6379:6379"
