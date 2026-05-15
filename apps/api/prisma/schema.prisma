@@ -1,0 +1,451 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+enum InventoryMovementType {
+  SALE
+  PURCHASE
+  ADJUSTMENT
+  RETURN
+}
+
+enum PaymentStatus {
+  PAID
+  CREDIT
+  PARTIAL
+}
+
+enum CustomerType {
+  WALK_IN
+  VENDOR
+}
+
+enum LedgerEntryType {
+  DEBIT
+  CREDIT
+}
+
+enum PaymentMethod {
+  CASH
+  ONLINE
+  CREDIT
+}
+
+model Tenant {
+  id String @id @default(uuid())
+
+  name String
+
+  isActive Boolean @default(true)
+
+  users User[]
+
+  roles Role[]
+
+  products Product[]
+
+  inventories Inventory[]
+
+  inventoryMovements InventoryMovement[]
+
+  customers Customer[]
+
+  ledgerEntries LedgerEntry[]
+
+  payments Payment[]
+
+  sales Sale[]
+
+  saleItems SaleItem[]
+
+  syncEvents SyncEvent[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id String @id @default(uuid())
+
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  roleId String
+
+  role Role @relation(fields: [roleId], references: [id])
+
+  name String
+
+  email String
+
+  passwordHash String
+
+  refreshToken String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, email])
+}
+
+model Role {
+  id String @id @default(uuid())
+
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  name String
+
+  users User[]
+
+  permissions RolePermission[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, name])
+}
+
+model Permission {
+  id String @id @default(uuid())
+
+  key String @unique
+
+  description String?
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId String
+
+  permissionId String
+
+  role Role @relation(fields: [roleId], references: [id])
+
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+}
+
+model Product {
+  id String @id @default(uuid())
+
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  name String
+
+  barcode String?
+
+  sku String?
+
+  imageUrl String?
+
+  salePrice Float
+
+  costPrice Float
+
+  isActive Boolean @default(true)
+
+  isArchived Boolean @default(false)
+
+  inventory Inventory[]
+
+  movements InventoryMovement[]
+
+  saleItems SaleItem[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  deletedAt DateTime?
+
+  @@unique([tenantId, sku])
+
+  @@unique([tenantId, barcode])
+
+  @@index([tenantId])
+
+  @@index([name])
+
+  @@index([barcode])
+
+  @@index([sku])
+}
+
+model Inventory {
+  id String @id @default(uuid())
+
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  productId String
+
+  product Product @relation(fields: [productId], references: [id])
+
+  quantity Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, productId])
+
+  @@index([tenantId])
+
+  @@index([productId])
+}
+
+model InventoryMovement {
+  id String @id @default(uuid())
+
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  productId String
+
+  product Product @relation(fields: [productId], references: [id])
+
+  performedByUserId String?
+
+  type InventoryMovementType
+
+  quantityChange Int
+
+  referenceType String?
+
+  referenceId String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+
+  @@index([productId])
+
+  @@index([type])
+
+  @@index([createdAt])
+}
+
+model Customer {
+  id String @id @default(uuid())
+
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  name String
+
+  phone String?
+
+  type CustomerType
+
+  creditLimit Float @default(0)
+
+  currentBalance Float @default(0)
+
+  ledgerEntries LedgerEntry[]
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  deletedAt DateTime?
+
+  @@index([tenantId])
+
+  @@index([name])
+
+  @@index([phone])
+  sales Sale[]
+}
+
+model LedgerEntry {
+  id String @id @default(uuid())
+
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  customerId String
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  performedByUserId String?
+
+  type LedgerEntryType
+
+  amount Float
+
+  referenceType String?
+
+  referenceId String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+
+  @@index([customerId])
+
+  @@index([type])
+
+  @@index([createdAt])
+}
+
+model Payment {
+  id String @id @default(uuid())
+
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  customerId String
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  saleId String?
+
+  amount Float
+
+  method PaymentMethod
+
+  note String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  deletedAt DateTime?
+
+  @@index([tenantId])
+
+  @@index([customerId])
+
+  @@index([saleId])
+
+  @@index([createdAt])
+}
+
+model Sale {
+  id String @id @default(uuid())
+
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  customerId String?
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  totalAmount Float
+
+  discount Float @default(0)
+
+  finalAmount Float
+
+  paymentStatus PaymentStatus
+
+  items SaleItem[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  deletedAt DateTime?
+}
+model SaleItem {
+  id String @id @default(uuid())
+
+  saleId String
+
+  sale Sale @relation(fields: [saleId], references: [id])
+
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  productId String
+
+  product Product @relation(fields: [productId], references: [id])
+
+  quantity Int
+
+  unitPrice Float
+
+  subtotal Float
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+
+  @@index([saleId])
+
+  @@index([productId])
+}
+
+model SyncEvent {
+  id String @id @default(uuid())
+
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  eventType String
+
+  payload Json
+
+  status SyncStatus @default(PENDING)
+
+  deviceId String?
+
+  idempotencyKey String?
+
+  retryCount Int @default(0)
+
+  errorMessage String?
+
+  syncedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+
+  @@index([status])
+
+  @@index([createdAt])
+
+  @@index([idempotencyKey])
+}
