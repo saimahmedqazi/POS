@@ -12,6 +12,12 @@ import {
   useAuthStore,
 } from '../../store/auth.store';
 
+import Card from '../../components/ui/card';
+
+import Input from '../../components/ui/input';
+
+import Button from '../../components/ui/button';
+
 export default function LoginPage() {
   const navigate =
     useNavigate();
@@ -57,9 +63,10 @@ export default function LoginPage() {
               password,
             },
           );
-          console.log(response.data);
+
         setToken(
-          response.data.access_token,
+          response.data
+            .access_token,
         );
 
         navigate('/');
@@ -77,71 +84,92 @@ export default function LoginPage() {
     };
 
   return (
-    <div
-      style={{
-        padding: 40,
-      }}
-    >
-      <h1>
-        POS Login
-      </h1>
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <Card className="rounded-3xl shadow-xl">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-slate-900">
+              POS ERP
+            </h1>
 
-      <form
-        onSubmit={
-          handleLogin
-        }
-      >
-        <div>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(
-              e,
-            ) =>
-              setEmail(
-                e.target
-                  .value,
-              )
+            <p className="text-slate-500 mt-2">
+              Sign in to continue
+            </p>
+          </div>
+
+          <form
+            onSubmit={
+              handleLogin
             }
-          />
-        </div>
+            className="space-y-5"
+          >
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Email
+              </label>
 
-        <div>
-          <input
-            type="password"
-            placeholder="Password"
-            value={
-              password
-            }
-            onChange={(
-              e,
-            ) =>
-              setPassword(
-                e.target
-                  .value,
-              )
-            }
-          />
-        </div>
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(
+                  e,
+                ) =>
+                  setEmail(
+                    e.target
+                      .value,
+                  )
+                }
+              />
+            </div>
 
-        <button
-          type="submit"
-          disabled={
-            loading
-          }
-        >
-          {loading
-            ? 'Loading...'
-            : 'Login'}
-        </button>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Password
+              </label>
 
-        {error && (
-          <p>
-            {error}
-          </p>
-        )}
-      </form>
+              <Input
+                type="password"
+                placeholder="Enter your password"
+                value={
+                  password
+                }
+                onChange={(
+                  e,
+                ) =>
+                  setPassword(
+                    e.target
+                      .value,
+                  )
+                }
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-100 text-red-700 px-4 py-3 rounded-2xl text-sm">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={
+                loading
+              }
+              className="w-full"
+            >
+              {loading
+                ? 'Signing in...'
+                : 'Login'}
+            </Button>
+          </form>
+
+          <div className="mt-8 text-center text-sm text-slate-500">
+            ERP & POS
+            Management System
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

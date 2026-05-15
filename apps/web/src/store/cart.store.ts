@@ -8,15 +8,22 @@ type CartItem = {
   price: number;
 
   quantity: number;
+
+  stock: number;
 };
 
 type CartState = {
   items: CartItem[];
-
+  
   addItem: (
     item: CartItem,
   ) => void;
 
+  setQuantity: (
+  productId: string,
+
+  quantity: number,
+) => void;
   increaseQuantity: (
     productId: string,
   ) => void;
@@ -30,56 +37,105 @@ type CartState = {
   ) => void;
 
   clearCart: () => void;
+
 };
 
 export const useCartStore =
   create<CartState>(
     (set, get) => ({
       items: [],
-
-      addItem: (
-        item,
-      ) => {
-        const existing =
-          get().items.find(
-            (
-              i,
-            ) =>
-              i.productId ===
-              item.productId,
-          );
-
-        if (existing) {
-          set({
-            items:
-              get().items.map(
-                (
-                  i,
-                ) =>
-                  i.productId ===
-                  item.productId
-                    ? {
-                        ...i,
-
-                        quantity:
-                          i.quantity +
-                          1,
-                      }
-                    : i,
-              ),
-          });
-
-          return;
-        }
-
-        set({
-          items: [
-            ...get().items,
-
+      setQuantity: (
+  productId,
+  quantity,
+) => {
+  if (
+    quantity <= 0
+  ) {
+    set({
+      items:
+        get().items.filter(
+          (
             item,
-          ],
-        });
-      },
+          ) =>
+            item.productId !==
+            productId,
+        ),
+    });
+
+    return;
+  }
+
+  set({
+    items:
+      get().items.map(
+        (
+          item,
+        ) =>
+          item.productId ===
+          productId
+            ? {
+                ...item,
+
+                quantity,
+              }
+            : item,
+      ),
+  });
+},
+     addItem: (
+  item,
+) => {
+  const existing =
+    get().items.find(
+      (
+        i,
+      ) =>
+        i.productId ===
+        item.productId,
+    );
+
+  if (existing) {
+    if (
+      existing.quantity >=
+      existing.stock
+    ) {
+      alert(
+        `Only ${existing.stock} items available`,
+      );
+
+      return;
+    }
+
+    set({
+      items:
+        get().items.map(
+          (
+            i,
+          ) =>
+            i.productId ===
+            item.productId
+              ? {
+                  ...i,
+
+                  quantity:
+                    i.quantity +
+                    1,
+                }
+              : i,
+        ),
+    });
+
+    return;
+  }
+
+  set({
+    items: [
+      ...get().items,
+
+      item,
+    ],
+  });
+},
 
       increaseQuantity: (
         productId,

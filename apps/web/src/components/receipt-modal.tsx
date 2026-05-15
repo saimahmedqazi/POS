@@ -6,6 +6,8 @@ type CartItem = {
   price: number;
 
   quantity: number;
+
+  stock: number;
 };
 
 type Props = {

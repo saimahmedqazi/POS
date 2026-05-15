@@ -12,7 +12,15 @@ import {
   ShoppingCart,
   Package,
   TrendingUp,
+  Activity,
+  Wallet,
 } from 'lucide-react';
+
+import PageHeader from '../../components/ui/page-header';
+
+import Card from '../../components/ui/card';
+
+import Badge from '../../components/ui/badge';
 
 type DailySales = {
   totalRevenue: number;
@@ -126,195 +134,291 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-800">
-            Dashboard
-          </h1>
-
-          <p className="text-slate-500 mt-1">
-            Business overview
-          </p>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          title="Dashboard"
+          subtitle="Business overview and analytics"
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 text-sm font-medium">
                   Revenue
                 </p>
 
-                <h2 className="text-3xl font-bold mt-2">
+                <h2 className="text-3xl font-bold mt-3">
                   Rs.{' '}
-                  {
-                    dailySales?.totalRevenue
-                  }
+                  {dailySales?.totalRevenue?.toFixed(
+                    2,
+                  )}
                 </h2>
+
+                <div className="mt-4">
+                  <Badge variant="success">
+                    Sales Income
+                  </Badge>
+                </div>
               </div>
 
-              <div className="bg-green-100 p-3 rounded-xl">
+              <div className="bg-green-100 p-4 rounded-2xl">
                 <DollarSign className="text-green-600" />
               </div>
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 text-sm font-medium">
                   Transactions
                 </p>
 
-                <h2 className="text-3xl font-bold mt-2">
+                <h2 className="text-3xl font-bold mt-3">
                   {
                     dailySales?.totalTransactions
                   }
                 </h2>
+
+                <div className="mt-4">
+                  <Badge variant="neutral">
+                    Orders
+                  </Badge>
+                </div>
               </div>
 
-              <div className="bg-blue-100 p-3 rounded-xl">
+              <div className="bg-blue-100 p-4 rounded-2xl">
                 <ShoppingCart className="text-blue-600" />
               </div>
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 text-sm font-medium">
                   Gross Profit
                 </p>
 
-                <h2 className="text-3xl font-bold mt-2">
+                <h2 className="text-3xl font-bold mt-3">
                   Rs.{' '}
-                  {
-                    profitSummary?.grossProfit
-                  }
+                  {profitSummary?.grossProfit?.toFixed(
+                    2,
+                  )}
                 </h2>
+
+                <div className="mt-4">
+                  <Badge variant="success">
+                    Profit
+                  </Badge>
+                </div>
               </div>
 
-              <div className="bg-purple-100 p-3 rounded-xl">
+              <div className="bg-purple-100 p-4 rounded-2xl">
                 <TrendingUp className="text-purple-600" />
               </div>
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 text-sm font-medium">
                   Inventory Qty
                 </p>
 
-                <h2 className="text-3xl font-bold mt-2">
+                <h2 className="text-3xl font-bold mt-3">
                   {
                     inventoryValuation?.totalQuantity
                   }
                 </h2>
+
+                <div className="mt-4">
+                  <Badge variant="warning">
+                    Stock
+                  </Badge>
+                </div>
               </div>
 
-              <div className="bg-orange-100 p-3 rounded-xl">
+              <div className="bg-orange-100 p-4 rounded-2xl">
                 <Package className="text-orange-600" />
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              Profit Summary
-            </h2>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <Card className="xl:col-span-2">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold">
+                Financial Overview
+              </h2>
 
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span>
-                  Revenue
-                </span>
+              <Badge variant="neutral">
+                Live Metrics
+              </Badge>
+            </div>
 
-                <span className="font-semibold">
-                  Rs.{' '}
-                  {
-                    profitSummary?.totalRevenue
-                  }
-                </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-slate-50 rounded-2xl p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-green-100 p-2 rounded-xl">
+                    <Wallet className="text-green-600 w-5 h-5" />
+                  </div>
+
+                  <h3 className="font-semibold">
+                    Profit Summary
+                  </h3>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">
+                      Revenue
+                    </span>
+
+                    <span className="font-semibold">
+                      Rs.{' '}
+                      {profitSummary?.totalRevenue?.toFixed(
+                        2,
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">
+                      Cost
+                    </span>
+
+                    <span className="font-semibold">
+                      Rs.{' '}
+                      {profitSummary?.totalCost?.toFixed(
+                        2,
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">
+                      Margin
+                    </span>
+
+                    <span className="font-semibold text-green-600">
+                      {
+                        profitSummary?.profitMargin
+                      }
+                      %
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-between">
-                <span>
-                  Cost
-                </span>
+              <div className="bg-slate-50 rounded-2xl p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-orange-100 p-2 rounded-xl">
+                    <Package className="text-orange-600 w-5 h-5" />
+                  </div>
 
-                <span className="font-semibold">
+                  <h3 className="font-semibold">
+                    Inventory Value
+                  </h3>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">
+                      Cost Value
+                    </span>
+
+                    <span className="font-semibold">
+                      Rs.{' '}
+                      {inventoryValuation?.totalCostValue?.toFixed(
+                        2,
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">
+                      Sale Value
+                    </span>
+
+                    <span className="font-semibold">
+                      Rs.{' '}
+                      {inventoryValuation?.totalSaleValue?.toFixed(
+                        2,
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">
+                      Est. Profit
+                    </span>
+
+                    <span className="font-semibold text-purple-600">
+                      Rs.{' '}
+                      {inventoryValuation?.estimatedProfit?.toFixed(
+                        2,
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold">
+                Performance
+              </h2>
+
+              <Activity className="text-slate-400" />
+            </div>
+
+            <div className="space-y-5">
+              <div className="bg-slate-50 rounded-2xl p-4">
+                <p className="text-sm text-slate-500">
+                  Average Order Value
+                </p>
+
+                <h3 className="text-2xl font-bold mt-2">
                   Rs.{' '}
-                  {
-                    profitSummary?.totalCost
-                  }
-                </span>
+                  {dailySales?.averageOrderValue?.toFixed(
+                    2,
+                  )}
+                </h3>
               </div>
 
-              <div className="flex justify-between">
-                <span>
-                  Margin
-                </span>
+              <div className="bg-slate-50 rounded-2xl p-4">
+                <p className="text-sm text-slate-500">
+                  Estimated Inventory Profit
+                </p>
 
-                <span className="font-semibold">
+                <h3 className="text-2xl font-bold mt-2 text-green-600">
+                  Rs.{' '}
+                  {inventoryValuation?.estimatedProfit?.toFixed(
+                    2,
+                  )}
+                </h3>
+              </div>
+
+              <div className="bg-slate-50 rounded-2xl p-4">
+                <p className="text-sm text-slate-500">
+                  Profit Margin
+                </p>
+
+                <h3 className="text-2xl font-bold mt-2 text-purple-600">
                   {
                     profitSummary?.profitMargin
                   }
                   %
-                </span>
+                </h3>
               </div>
             </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              Inventory Valuation
-            </h2>
-
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span>
-                  Cost Value
-                </span>
-
-                <span className="font-semibold">
-                  Rs.{' '}
-                  {
-                    inventoryValuation?.totalCostValue
-                  }
-                </span>
-              </div>
-
-              <div className="flex justify-between">
-                <span>
-                  Sale Value
-                </span>
-
-                <span className="font-semibold">
-                  Rs.{' '}
-                  {
-                    inventoryValuation?.totalSaleValue
-                  }
-                </span>
-              </div>
-
-              <div className="flex justify-between">
-                <span>
-                  Estimated Profit
-                </span>
-
-                <span className="font-semibold">
-                  Rs.{' '}
-                  {
-                    inventoryValuation?.estimatedProfit
-                  }
-                </span>
-              </div>
-            </div>
-          </div>
+          </Card>
         </div>
       </div>
     </AppLayout>

@@ -1,4 +1,6 @@
-import { create } from 'zustand';
+import {
+  create,
+} from 'zustand';
 
 type AuthState = {
   token: string | null;
@@ -7,7 +9,7 @@ type AuthState = {
     token: string,
   ) => void;
 
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 export const useAuthStore =
@@ -31,14 +33,23 @@ export const useAuthStore =
         });
       },
 
-      logout: () => {
-        localStorage.removeItem(
-          'token',
-        );
+      logout:
+        async () => {
+          localStorage.removeItem(
+            'token',
+          );
 
-        set({
-          token: null,
-        });
-      },
+          const {
+            db,
+          } = await import(
+            '../utils/db'
+          );
+
+          await db.cachedProducts.clear();
+
+          set({
+            token: null,
+          });
+        },
     }),
   );
