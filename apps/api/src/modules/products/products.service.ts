@@ -3,42 +3,84 @@ import {
   Injectable,
 } from '@nestjs/common';
 
-import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  PrismaService,
+} from '../../common/prisma/prisma.service';
 
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
+import {
+  CreateProductDto,
+} from './dto/create-product.dto';
+
+import {
+  UpdateProductDto,
+} from './dto/update-product.dto';
 
 @Injectable()
 export class ProductsService {
   constructor(
     private prisma: PrismaService,
-  ) { }
+  ) {}
 
   async create(
     tenantId: string,
     dto: CreateProductDto,
   ) {
     try {
-      return await this.prisma.product.create({
-        data: {
-          tenantId,
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const product =
+            await tx.product.create({
+              data: {
+                tenantId,
 
-          name: dto.name,
+                name:
+                  dto.name.trim(),
 
-          barcode:
-            dto.barcode,
+                barcode:
+                  dto.barcode?.trim() ||
+                  null,
 
-          sku: dto.sku,
+                sku:
+                  dto.sku?.trim() ||
+                  null,
 
-          salePrice:
-            dto.salePrice,
+                salePrice:
+                  Number(
+                    dto.salePrice,
+                  ),
 
-          costPrice:
-            dto.costPrice,
+                costPrice:
+                  Number(
+                    dto.costPrice,
+                  ),
+              },
+            });
+
+          // AUTO CREATE INVENTORY ROW
+          await tx.inventory.create({
+            data: {
+              tenantId,
+
+              productId:
+                product.id,
+
+              quantity: 0,
+            },
+          });
+
+          return tx.product.findUnique({
+            where: {
+              id: product.id,
+            },
+
+            include: {
+              inventory: true,
+            },
+          });
         },
-      });
+      );
     } catch (
-    error: any
+      error: any
     ) {
       if (
         error.code ===
@@ -70,10 +112,12 @@ export class ProductsService {
       },
 
       orderBy: {
-        createdAt: 'desc',
+        createdAt:
+          'desc',
       },
     });
   }
+
   async update(
     tenantId: string,
     productId: string,
@@ -88,11 +132,48 @@ export class ProductsService {
         },
 
         data: {
-          ...dto,
+          ...(dto.name && {
+            name:
+              dto.name.trim(),
+          }),
+
+          ...(dto.barcode !==
+            undefined && {
+            barcode:
+              dto.barcode?.trim() ||
+              null,
+          }),
+
+          ...(dto.sku !==
+            undefined && {
+            sku:
+              dto.sku?.trim() ||
+              null,
+          }),
+
+          ...(dto.salePrice !==
+            undefined && {
+            salePrice:
+              Number(
+                dto.salePrice,
+              ),
+          }),
+
+          ...(dto.costPrice !==
+            undefined && {
+            costPrice:
+              Number(
+                dto.costPrice,
+              ),
+          }),
+        },
+
+        include: {
+          inventory: true,
         },
       });
     } catch (
-    error: any
+      error: any
     ) {
       if (
         error.code ===
@@ -106,21 +187,24 @@ export class ProductsService {
       throw error;
     }
   }
+
   async archive(
-  tenantId: string,
-  productId: string,
-) {
-  return this.prisma.product.update({
-    where: {
-      id: productId,
-    },
+    tenantId: string,
+    productId: string,
+  ) {
+    return this.prisma.product.update({
+      where: {
+        id: productId,
 
-    data: {
-      isArchived: true,
+        tenantId,
+      },
 
-      deletedAt:
-        new Date(),
-    },
-  });
-}
+      data: {
+        isArchived: true,
+
+        deletedAt:
+          new Date(),
+      },
+    });
+  }
 }

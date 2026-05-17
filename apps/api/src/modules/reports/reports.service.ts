@@ -58,7 +58,7 @@ export class ReportsService {
         ) =>
           sum +
           Number(
-            sale.finalAmount,
+            sale.finalAmount || 0,
           ),
 
         0,
@@ -97,6 +97,10 @@ export class ReportsService {
       await this.prisma.inventory.findMany({
         where: {
           tenantId,
+
+          productId: {
+            not: '',
+          },
         },
 
         include: {
@@ -111,7 +115,9 @@ export class ReportsService {
           item,
         ) =>
           sum +
-          item.quantity,
+          Number(
+            item.quantity || 0,
+          ),
 
         0,
       );
@@ -123,10 +129,12 @@ export class ReportsService {
           item,
         ) =>
           sum +
-          item.quantity *
+          Number(
+            item.quantity || 0,
+          ) *
             Number(
               item.product
-                .costPrice,
+                ?.costPrice || 0,
             ),
 
         0,
@@ -139,10 +147,12 @@ export class ReportsService {
           item,
         ) =>
           sum +
-          item.quantity *
+          Number(
+            item.quantity || 0,
+          ) *
             Number(
               item.product
-                .salePrice,
+                ?.salePrice || 0,
             ),
 
         0,
@@ -171,8 +181,10 @@ export class ReportsService {
         by: ['productId'],
 
         where: {
-          sale: {
-            tenantId,
+          tenantId,
+
+          productId: {
+            not: '',
           },
         },
 
@@ -233,14 +245,15 @@ export class ReportsService {
             'Unknown Product',
 
           totalQuantitySold:
-            item._sum
-              ?.quantity || 0,
+            Number(
+              item._sum
+                ?.quantity || 0,
+            ),
 
           totalRevenue:
             Number(
               item._sum
-                ?.subtotal ||
-                0,
+                ?.subtotal || 0,
             ),
         };
       })
@@ -258,6 +271,10 @@ export class ReportsService {
       await this.prisma.saleItem.findMany({
         where: {
           tenantId,
+
+          productId: {
+            not: '',
+          },
         },
 
         include: {
@@ -273,7 +290,7 @@ export class ReportsService {
         ) =>
           sum +
           Number(
-            item.subtotal,
+            item.subtotal || 0,
           ),
 
         0,
@@ -286,10 +303,12 @@ export class ReportsService {
           item,
         ) =>
           sum +
-          item.quantity *
+          Number(
+            item.quantity || 0,
+          ) *
             Number(
               item.product
-                .costPrice,
+                ?.costPrice || 0,
             ),
 
         0,
@@ -344,12 +363,12 @@ export class ReportsService {
       ) => {
         const currentBalance =
           Number(
-            customer.currentBalance,
+            customer.currentBalance || 0,
           );
 
         const creditLimit =
           Number(
-            customer.creditLimit,
+            customer.creditLimit || 0,
           );
 
         return {

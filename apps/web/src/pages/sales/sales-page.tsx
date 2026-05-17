@@ -397,7 +397,7 @@ export default function SalesPage() {
                   <span>
                     Rs.{' '}
                     {
-                      selectedNumber(sale.finalAmount)
+                     Number(selectedSale.finalAmount)
                     }
                   </span>
                 </div>
