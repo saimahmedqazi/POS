@@ -11,19 +11,14 @@ import {
 let syncing = false;
 
 export async function syncOfflineSales() {
-  // prevent duplicate runs
   if (syncing) {
     return;
   }
 
-  // must be online
-  if (
-    !navigator.onLine
-  ) {
+  if (!navigator.onLine) {
     return;
   }
 
-  // must have token
   const token =
     useAuthStore.getState()
       .token;
@@ -55,39 +50,20 @@ export async function syncOfflineSales() {
     if (
       pendingSales.length === 0
     ) {
-      syncing = false;
-
       return;
     }
 
     for (const sale of pendingSales) {
       try {
-        const event = {
-          eventId:
-            crypto.randomUUID(),
-
-          eventType:
-            'SALE_CREATED',
-
-          payload:
-            sale.payload,
-
-          deviceId:
-            'POS-WEB',
-        };
-
         console.log(
-          'Syncing event:',
-          event,
+          'Syncing sale:',
+          sale.id,
         );
 
+        // DIRECT SALES API CALL
         await api.post(
-          '/sync/push',
-          {
-            events: [
-              event,
-            ],
-          },
+          '/sales',
+          sale.payload,
         );
 
         if (sale.id) {
@@ -102,7 +78,7 @@ export async function syncOfflineSales() {
           );
 
           console.log(
-            'Sale synced:',
+            'Sale synced successfully:',
             sale.id,
           );
         }
@@ -112,6 +88,19 @@ export async function syncOfflineSales() {
           sale.id,
           error,
         );
+
+        // DO NOT MARK AS SYNCED
+        if (sale.id) {
+          await db.offlineSales.update(
+            sale.id,
+            {
+              synced: false,
+
+              serverSynced:
+                false,
+            },
+          );
+        }
       }
     }
 
