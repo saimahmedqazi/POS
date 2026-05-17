@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Activity,
   Wallet,
+  RefreshCw,
 } from 'lucide-react';
 
 import PageHeader from '../../components/ui/page-header';
@@ -50,40 +51,78 @@ type InventoryValuation = {
   estimatedProfit: number;
 };
 
+const defaultDailySales: DailySales =
+  {
+    totalRevenue: 0,
+
+    totalTransactions: 0,
+
+    averageOrderValue: 0,
+  };
+
+const defaultProfitSummary: ProfitSummary =
+  {
+    totalRevenue: 0,
+
+    totalCost: 0,
+
+    grossProfit: 0,
+
+    profitMargin: 0,
+  };
+
+const defaultInventoryValuation: InventoryValuation =
+  {
+    totalQuantity: 0,
+
+    totalCostValue: 0,
+
+    totalSaleValue: 0,
+
+    estimatedProfit: 0,
+  };
+
 export default function DashboardPage() {
   const [
     dailySales,
     setDailySales,
-  ] = useState<DailySales | null>(
-    null,
+  ] = useState<DailySales>(
+    defaultDailySales,
   );
 
   const [
     profitSummary,
     setProfitSummary,
-  ] = useState<ProfitSummary | null>(
-    null,
+  ] = useState<ProfitSummary>(
+    defaultProfitSummary,
   );
 
   const [
     inventoryValuation,
     setInventoryValuation,
-  ] = useState<InventoryValuation | null>(
-    null,
+  ] = useState<InventoryValuation>(
+    defaultInventoryValuation,
   );
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboard =
-      async () => {
-        try {
-          const [
-            salesRes,
-            profitRes,
-            inventoryRes,
-          ] = await Promise.all([
+  const [
+    error,
+    setError,
+  ] = useState('');
+
+  const fetchDashboard =
+    async () => {
+      try {
+        setLoading(true);
+
+        setError('');
+
+        const results =
+          await Promise.allSettled([
             api.get(
               '/reports/daily-sales',
             ),
@@ -97,35 +136,82 @@ export default function DashboardPage() {
             ),
           ]);
 
-          setDailySales(
-            salesRes.data,
-          );
+        const [
+          salesRes,
+          profitRes,
+          inventoryRes,
+        ] = results;
 
-          setProfitSummary(
-            profitRes.data,
-          );
-
-          setInventoryValuation(
-            inventoryRes.data,
-          );
-        } catch (
-          error
+        if (
+          salesRes.status ===
+          'fulfilled'
         ) {
-          console.error(
-            error,
+          setDailySales(
+            salesRes.value.data,
           );
-        } finally {
-          setLoading(false);
         }
-      };
 
+        if (
+          profitRes.status ===
+          'fulfilled'
+        ) {
+          setProfitSummary(
+            profitRes.value.data,
+          );
+        }
+
+        if (
+          inventoryRes.status ===
+          'fulfilled'
+        ) {
+          setInventoryValuation(
+            inventoryRes.value.data,
+          );
+        }
+
+        const failed =
+          results.some(
+            (r) =>
+              r.status ===
+              'rejected',
+          );
+
+        if (failed) {
+          setError(
+            'Some dashboard data failed to load.',
+          );
+        }
+      } catch (
+        error
+      ) {
+        console.error(
+          error,
+        );
+
+        setError(
+          'Failed to load dashboard.',
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+  useEffect(() => {
     fetchDashboard();
   }, []);
+
+  const formatCurrency =
+    (
+      value?: number,
+    ) =>
+      `Rs. ${Number(
+        value || 0,
+      ).toFixed(2)}`;
 
   if (loading) {
     return (
       <AppLayout>
-        <div>
+        <div className="p-6">
           Loading dashboard...
         </div>
       </AppLayout>
@@ -135,10 +221,29 @@ export default function DashboardPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <PageHeader
-          title="Dashboard"
-          subtitle="Business overview and analytics"
-        />
+        <div className="flex items-center justify-between">
+          <PageHeader
+            title="Dashboard"
+            subtitle="Business overview and analytics"
+          />
+
+          <button
+            onClick={
+              fetchDashboard
+            }
+            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl"
+          >
+            <RefreshCw className="w-4 h-4" />
+
+            Refresh
+          </button>
+        </div>
+
+        {error && (
+          <div className="bg-red-100 text-red-700 px-4 py-3 rounded-2xl">
+            {error}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           <Card>
@@ -149,9 +254,8 @@ export default function DashboardPage() {
                 </p>
 
                 <h2 className="text-3xl font-bold mt-3">
-                  Rs.{' '}
-                  {dailySales?.totalRevenue?.toFixed(
-                    2,
+                  {formatCurrency(
+                    dailySales.totalRevenue,
                   )}
                 </h2>
 
@@ -177,7 +281,7 @@ export default function DashboardPage() {
 
                 <h2 className="text-3xl font-bold mt-3">
                   {
-                    dailySales?.totalTransactions
+                    dailySales.totalTransactions
                   }
                 </h2>
 
@@ -202,9 +306,8 @@ export default function DashboardPage() {
                 </p>
 
                 <h2 className="text-3xl font-bold mt-3">
-                  Rs.{' '}
-                  {profitSummary?.grossProfit?.toFixed(
-                    2,
+                  {formatCurrency(
+                    profitSummary.grossProfit,
                   )}
                 </h2>
 
@@ -230,7 +333,7 @@ export default function DashboardPage() {
 
                 <h2 className="text-3xl font-bold mt-3">
                   {
-                    inventoryValuation?.totalQuantity
+                    inventoryValuation.totalQuantity
                   }
                 </h2>
 
@@ -279,9 +382,8 @@ export default function DashboardPage() {
                     </span>
 
                     <span className="font-semibold">
-                      Rs.{' '}
-                      {profitSummary?.totalRevenue?.toFixed(
-                        2,
+                      {formatCurrency(
+                        profitSummary.totalRevenue,
                       )}
                     </span>
                   </div>
@@ -292,9 +394,8 @@ export default function DashboardPage() {
                     </span>
 
                     <span className="font-semibold">
-                      Rs.{' '}
-                      {profitSummary?.totalCost?.toFixed(
-                        2,
+                      {formatCurrency(
+                        profitSummary.totalCost,
                       )}
                     </span>
                   </div>
@@ -306,7 +407,7 @@ export default function DashboardPage() {
 
                     <span className="font-semibold text-green-600">
                       {
-                        profitSummary?.profitMargin
+                        profitSummary.profitMargin
                       }
                       %
                     </span>
@@ -332,9 +433,8 @@ export default function DashboardPage() {
                     </span>
 
                     <span className="font-semibold">
-                      Rs.{' '}
-                      {inventoryValuation?.totalCostValue?.toFixed(
-                        2,
+                      {formatCurrency(
+                        inventoryValuation.totalCostValue,
                       )}
                     </span>
                   </div>
@@ -345,9 +445,8 @@ export default function DashboardPage() {
                     </span>
 
                     <span className="font-semibold">
-                      Rs.{' '}
-                      {inventoryValuation?.totalSaleValue?.toFixed(
-                        2,
+                      {formatCurrency(
+                        inventoryValuation.totalSaleValue,
                       )}
                     </span>
                   </div>
@@ -358,9 +457,8 @@ export default function DashboardPage() {
                     </span>
 
                     <span className="font-semibold text-purple-600">
-                      Rs.{' '}
-                      {inventoryValuation?.estimatedProfit?.toFixed(
-                        2,
+                      {formatCurrency(
+                        inventoryValuation.estimatedProfit,
                       )}
                     </span>
                   </div>
@@ -385,9 +483,8 @@ export default function DashboardPage() {
                 </p>
 
                 <h3 className="text-2xl font-bold mt-2">
-                  Rs.{' '}
-                  {dailySales?.averageOrderValue?.toFixed(
-                    2,
+                  {formatCurrency(
+                    dailySales.averageOrderValue,
                   )}
                 </h3>
               </div>
@@ -398,9 +495,8 @@ export default function DashboardPage() {
                 </p>
 
                 <h3 className="text-2xl font-bold mt-2 text-green-600">
-                  Rs.{' '}
-                  {inventoryValuation?.estimatedProfit?.toFixed(
-                    2,
+                  {formatCurrency(
+                    inventoryValuation.estimatedProfit,
                   )}
                 </h3>
               </div>
@@ -412,7 +508,7 @@ export default function DashboardPage() {
 
                 <h3 className="text-2xl font-bold mt-2 text-purple-600">
                   {
-                    profitSummary?.profitMargin
+                    profitSummary.profitMargin
                   }
                   %
                 </h3>
