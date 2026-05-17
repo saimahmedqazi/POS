@@ -32,7 +32,8 @@ BullModule.forRoot({
     ),
 
     password:
-      process.env.REDISPASSWORD,
+  process.env.REDIS_PASSWORD ||
+  undefined,
   },
 }),
 
