@@ -10,12 +10,18 @@ import {
   SyncEventProcessor,
 } from './sync-event.processor';
 
+import {
+  SalesService,
+} from '../../sales/sales.service';
+
 @Injectable()
 export class SaleCreatedProcessor
   implements SyncEventProcessor
 {
   constructor(
     private prisma: PrismaService,
+
+    private salesService: SalesService,
   ) {}
 
   async process(
@@ -25,7 +31,8 @@ export class SaleCreatedProcessor
     const existingSale =
       await this.prisma.sale.findUnique({
         where: {
-          id: payload.saleId,
+          id:
+            payload.saleId,
         },
       });
 
@@ -33,24 +40,21 @@ export class SaleCreatedProcessor
       return;
     }
 
-    await this.prisma.sale.create({
-      data: {
-        id: payload.saleId,
+    await this.salesService.createSale(
+      tenantId,
+      {
+        customerId:
+          payload.customerId,
 
-        tenantId,
-
-        totalAmount:
-          payload.totalAmount,
+        items:
+          payload.items || [],
 
         discount:
           payload.discount || 0,
 
-        finalAmount:
-          payload.finalAmount,
-
         paymentStatus:
           payload.paymentStatus,
       },
-    });
+    );
   }
 }

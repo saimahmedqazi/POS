@@ -14,9 +14,12 @@ import { BullModule } from '@nestjs/bull';
 
 import { SyncWorker } from './workers/sync.worker';
 
+import { SalesModule } from '../sales/sales.module';
+
 @Module({
   imports: [
     PrismaModule,
+    SalesModule,
     BullModule.registerQueue({
   name: 'sync-events',
 }),

@@ -3,37 +3,57 @@ import {
   IsArray,
   IsEnum,
   IsNumber,
-  ValidateNested,
   IsOptional,
   IsString,
+  Min,
+  ValidateNested,
 } from 'class-validator';
 
-import { Type } from 'class-transformer';
+import {
+  Type,
+} from 'class-transformer';
 
-import { CreateSaleItemDto } from './create-sale-item.dto';
+import {
+  CreateSaleItemDto,
+} from './create-sale-item.dto';
 
 export enum SalePaymentStatus {
   PAID = 'PAID',
+
   CREDIT = 'CREDIT',
+
   PARTIAL = 'PARTIAL',
 }
 
 export class CreateSaleDto {
   @IsOptional()
-@IsString()
-customerId?: string;
+  @IsString()
+  customerId?: string;
+
   @IsArray()
   @ArrayMinSize(1)
 
-  @ValidateNested({ each: true })
+  @ValidateNested({
+    each: true,
+  })
 
-  @Type(() => CreateSaleItemDto)
+  @Type(
+    () => CreateSaleItemDto,
+  )
 
   items!: CreateSaleItemDto[];
 
+  @Type(() => Number)
+
   @IsNumber()
+
+  @Min(0)
+
   discount!: number;
 
-  @IsEnum(SalePaymentStatus)
+  @IsEnum(
+    SalePaymentStatus,
+  )
+
   paymentStatus!: SalePaymentStatus;
 }

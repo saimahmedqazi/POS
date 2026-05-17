@@ -1,6 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+} from '@nestjs/common';
 
-import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  PrismaService,
+} from '../../common/prisma/prisma.service';
 
 @Injectable()
 export class ReportsService {
@@ -53,7 +57,9 @@ export class ReportsService {
           sale,
         ) =>
           sum +
-          sale.finalAmount,
+          Number(
+            sale.finalAmount,
+          ),
 
         0,
       );
@@ -75,7 +81,12 @@ export class ReportsService {
 
       totalTransactions,
 
-      averageOrderValue,
+      averageOrderValue:
+        Number(
+          averageOrderValue.toFixed(
+            2,
+          ),
+        ),
     };
   }
 
@@ -113,7 +124,10 @@ export class ReportsService {
         ) =>
           sum +
           item.quantity *
-            item.product.costPrice,
+            Number(
+              item.product
+                .costPrice,
+            ),
 
         0,
       );
@@ -126,7 +140,10 @@ export class ReportsService {
         ) =>
           sum +
           item.quantity *
-            item.product.salePrice,
+            Number(
+              item.product
+                .salePrice,
+            ),
 
         0,
       );
@@ -146,83 +163,94 @@ export class ReportsService {
     };
   }
 
-async getTopProducts(
-  tenantId: string,
-) {
-  const topProducts =
-    await this.prisma.saleItem.groupBy({
-      by: ['productId'],
+  async getTopProducts(
+    tenantId: string,
+  ) {
+    const topProducts =
+      await this.prisma.saleItem.groupBy({
+        by: ['productId'],
 
-      where: {
-        sale: {
-          tenantId,
+        where: {
+          sale: {
+            tenantId,
+          },
         },
-      },
 
-      _sum: {
-        quantity: true,
-
-        subtotal: true,
-      },
-
-      orderBy: {
         _sum: {
-          quantity: 'desc',
+          quantity: true,
+
+          subtotal: true,
         },
-      },
 
-      take: 10,
-    });
-
-  const productIds =
-    topProducts.map(
-      (item) =>
-        item.productId,
-    );
-
-  const products =
-    await this.prisma.product.findMany({
-      where: {
-        id: {
-          in: productIds,
+        orderBy: {
+          _sum: {
+            quantity:
+              'desc',
+          },
         },
-      },
 
-      select: {
-        id: true,
+        take: 10,
+      });
 
-        name: true,
-      },
-    });
-
-  return topProducts.map(
-    (item) => {
-      const product =
-        products.find(
-          (p) =>
-            p.id ===
-            item.productId,
-        );
-
-      return {
-        productId:
+    const productIds =
+      topProducts.map(
+        (item) =>
           item.productId,
+      );
 
-        productName:
-          product?.name ||
-          'Unknown Product',
+    const products =
+      await this.prisma.product.findMany({
+        where: {
+          tenantId,
 
-        totalQuantitySold:
-          item._sum
-            ?.quantity || 0,
+          id: {
+            in: productIds,
+          },
+        },
 
-        totalRevenue:
-          item._sum
-            ?.subtotal || 0,
-      };
-    },
-  );
-}
+        select: {
+          id: true,
+
+          name: true,
+        },
+      });
+
+    return topProducts
+      .map((item) => {
+        const product =
+          products.find(
+            (p) =>
+              p.id ===
+              item.productId,
+          );
+
+        return {
+          productId:
+            item.productId,
+
+          productName:
+            product?.name ||
+            'Unknown Product',
+
+          totalQuantitySold:
+            item._sum
+              ?.quantity || 0,
+
+          totalRevenue:
+            Number(
+              item._sum
+                ?.subtotal ||
+                0,
+            ),
+        };
+      })
+      .sort(
+        (a, b) =>
+          b.totalQuantitySold -
+          a.totalQuantitySold,
+      );
+  }
+
   async getProfitSummary(
     tenantId: string,
   ) {
@@ -244,7 +272,9 @@ async getTopProducts(
           item,
         ) =>
           sum +
-          item.subtotal,
+          Number(
+            item.subtotal,
+          ),
 
         0,
       );
@@ -257,7 +287,10 @@ async getTopProducts(
         ) =>
           sum +
           item.quantity *
-            item.product.costPrice,
+            Number(
+              item.product
+                .costPrice,
+            ),
 
         0,
       );
@@ -308,30 +341,40 @@ async getTopProducts(
     return customers.map(
       (
         customer,
-      ) => ({
-        customerId:
-          customer.id,
+      ) => {
+        const currentBalance =
+          Number(
+            customer.currentBalance,
+          );
 
-        customerName:
-          customer.name,
+        const creditLimit =
+          Number(
+            customer.creditLimit,
+          );
 
-        currentBalance:
-          customer.currentBalance,
+        return {
+          customerId:
+            customer.id,
 
-        creditLimit:
-          customer.creditLimit,
+          customerName:
+            customer.name,
 
-        balanceUtilization:
-          customer.creditLimit > 0
-            ? Number(
-                (
-                  (customer.currentBalance /
-                    customer.creditLimit) *
-                  100
-                ).toFixed(2),
-              )
-            : 0,
-      }),
+          currentBalance,
+
+          creditLimit,
+
+          balanceUtilization:
+            creditLimit > 0
+              ? Number(
+                  (
+                    (currentBalance /
+                      creditLimit) *
+                    100
+                  ).toFixed(2),
+                )
+              : 0,
+        };
+      },
     );
   }
 }

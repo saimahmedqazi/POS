@@ -28,12 +28,28 @@ export class SalesService {
         let totalAmount = 0;
 
         for (const item of dto.items) {
+          const product =
+            await tx.product.findFirst({
+              where: {
+                id: item.productId,
+
+                tenantId,
+              },
+            });
+
+          if (!product) {
+            throw new BadRequestException(
+              'Product not found',
+            );
+          }
+
           const inventory =
             await tx.inventory.findFirst({
               where: {
                 tenantId,
 
-                productId: item.productId,
+                productId:
+                  item.productId,
               },
             });
 
@@ -58,25 +74,30 @@ export class SalesService {
         }
 
         const finalAmount =
-          totalAmount - dto.discount;
+          Math.max(
+            totalAmount -
+              dto.discount,
+            0,
+          );
 
         const sale =
           await tx.sale.create({
             data: {
-  tenantId,
+              tenantId,
 
-  customerId:
-    dto.customerId,
+              customerId:
+                dto.customerId,
 
-  totalAmount,
+              totalAmount,
 
-  discount: dto.discount,
+              discount:
+                dto.discount,
 
-  finalAmount,
+              finalAmount,
 
-  paymentStatus:
-    dto.paymentStatus as PaymentStatus,
-},
+              paymentStatus:
+                dto.paymentStatus as PaymentStatus,
+            },
           });
 
         for (const item of dto.items) {
@@ -90,11 +111,14 @@ export class SalesService {
 
               saleId: sale.id,
 
-              productId: item.productId,
+              productId:
+                item.productId,
 
-              quantity: item.quantity,
+              quantity:
+                item.quantity,
 
-              unitPrice: item.unitPrice,
+              unitPrice:
+                item.unitPrice,
 
               subtotal,
             },
@@ -102,12 +126,13 @@ export class SalesService {
 
           await tx.inventory.update({
             where: {
-              tenantId_productId: {
-                tenantId,
+              tenantId_productId:
+                {
+                  tenantId,
 
-                productId:
-                  item.productId,
-              },
+                  productId:
+                    item.productId,
+                },
             },
 
             data: {
@@ -131,52 +156,71 @@ export class SalesService {
               quantityChange:
                 -item.quantity,
 
-              referenceType: 'SALE',
+              referenceType:
+                'SALE',
 
-              referenceId: sale.id,
+              referenceId:
+                sale.id,
             },
           });
         }
-if (
-  dto.paymentStatus ===
-    PaymentStatus.CREDIT &&
-  dto.customerId
-) {
-  await tx.ledgerEntry.create({
-    data: {
-      tenantId,
 
-      customerId:
-        dto.customerId,
+        if (
+          dto.paymentStatus ===
+            PaymentStatus.CREDIT &&
+          dto.customerId
+        ) {
+          await tx.ledgerEntry.create({
+            data: {
+              tenantId,
 
-      type:
-        LedgerEntryType.DEBIT,
+              customerId:
+                dto.customerId,
 
-      amount:
-        finalAmount,
+              type:
+                LedgerEntryType.DEBIT,
 
-      referenceType:
-        'SALE',
+              amount:
+                finalAmount,
 
-      referenceId:
-        sale.id,
-    },
-  });
+              referenceType:
+                'SALE',
 
-  await tx.customer.update({
-    where: {
-      id: dto.customerId,
-    },
+              referenceId:
+                sale.id,
+            },
+          });
 
-    data: {
-      currentBalance: {
-        increment:
-          finalAmount,
-      },
-    },
-  });
-}
-        return sale;
+          await tx.customer.update({
+            where: {
+              id: dto.customerId,
+            },
+
+            data: {
+              currentBalance:
+                {
+                  increment:
+                    finalAmount,
+                },
+            },
+          });
+        }
+
+        return tx.sale.findUnique({
+          where: {
+            id: sale.id,
+          },
+
+          include: {
+            customer: true,
+
+            items: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        });
       },
     );
   }
@@ -190,14 +234,15 @@ if (
       },
 
       include: {
-  customer: true,
+        customer: true,
 
-  items: {
-    include: {
-      product: true,
-    },
-  },
-},
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+
       orderBy: {
         createdAt: 'desc',
       },

@@ -646,7 +646,7 @@ export default function ReportsPage() {
                           <span className="font-semibold">
                             Rs.{' '}
                             {
-                              sale.finalAmount
+                              Number(sale.finalAmount)
                             }
                           </span>
                         </TableCell>

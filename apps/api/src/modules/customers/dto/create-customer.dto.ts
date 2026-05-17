@@ -16,7 +16,7 @@ export class CreateCustomerDto {
 
   @IsOptional()
   @IsString()
-  phone?: string;
+  phone!: string;
 
   @IsEnum(CustomerTypeDto)
   type!: CustomerTypeDto;

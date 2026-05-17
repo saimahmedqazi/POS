@@ -360,36 +360,62 @@ export default function PosPage() {
   };
 
   const handleCheckout =
-    async () => {
-      try {
-        setCheckoutLoading(
-          true,
-        );
+  async () => {
+    if (
+      checkoutLoading
+    ) {
+      return;
+    }
 
-        const salePayload = {
-          customerId:
-            selectedCustomerId ||
-            undefined,
+    if (
+      items.length === 0
+    ) {
+      alert(
+        'Cart is empty',
+      );
 
-          items: items.map(
-            (item) => ({
-              productId:
-                item.productId,
+      return;
+    }
 
-              quantity:
+    try {
+      setCheckoutLoading(
+        true,
+      );
+
+      const saleId =
+        crypto.randomUUID();
+
+      const salePayload = {
+        saleId,
+
+        customerId:
+          selectedCustomerId ||
+          undefined,
+
+        items: items.map(
+          (item) => ({
+            productId:
+              item.productId,
+
+            quantity:
+              Number(
                 item.quantity,
+              ),
 
-              unitPrice:
+            unitPrice:
+              Number(
                 item.price,
-            }),
-          ),
+              ),
+          }),
+        ),
 
-          discount: 0,
+        discount: 0,
 
-          paymentStatus,
-        };
+        paymentStatus,
+      };
 
-        if (
+      // OFFLINE MODE
+      if (
         !navigator.onLine
       ) {
         await db.offlineSales.add({
@@ -405,7 +431,27 @@ export default function PosPage() {
             new Date().toISOString(),
         });
 
+        setReceiptItems(
+          [...items],
+        );
+
+        setReceiptTotal(
+          total,
+        );
+
+        setReceiptOpen(
+          true,
+        );
+
         clearCart();
+
+        setSelectedCustomerId(
+          '',
+        );
+
+        setPaymentStatus(
+          'PAID',
+        );
 
         alert(
           'Sale saved offline. Will sync automatically.',
@@ -414,6 +460,8 @@ export default function PosPage() {
         return;
       }
 
+      // ONLINE MODE
+      try {
         await api.post(
           '/sales',
           salePayload,
@@ -431,6 +479,8 @@ export default function PosPage() {
           true,
         );
 
+        clearCart();
+
         setSelectedCustomerId(
           '',
         );
@@ -438,8 +488,6 @@ export default function PosPage() {
         setPaymentStatus(
           'PAID',
         );
-
-        clearCart();
       } catch (
         error: any
       ) {
@@ -447,23 +495,38 @@ export default function PosPage() {
           error,
         );
 
+        // FALLBACK TO OFFLINE SAVE
+        await db.offlineSales.add({
+          payload:
+            salePayload,
+
+          synced: false,
+
+          serverSynced:
+            false,
+
+          createdAt:
+            new Date().toISOString(),
+        });
+
+        clearCart();
+
         alert(
-          error?.response?.data
-            ?.message ||
-            'Checkout failed',
+          'Internet/server issue. Sale saved offline and will sync automatically.',
         );
-      } finally {
-        setCheckoutLoading(
-          false,
-        );
-
-        setSearch('');
-
-        setTimeout(() => {
-          searchInputRef.current?.focus();
-        }, 0);
       }
-    };
+    } finally {
+      setCheckoutLoading(
+        false,
+      );
+
+      setSearch('');
+
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 0);
+    }
+  };
 
   const handleBarcodeScan =
     (

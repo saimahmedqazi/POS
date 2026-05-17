@@ -215,7 +215,7 @@ export default function SalesPage() {
                       <span className="font-semibold">
                         Rs.{' '}
                         {
-                          sale.finalAmount
+                          Number(sale.finalAmount)
                         }
                       </span>
                     </TableCell>
@@ -397,7 +397,7 @@ export default function SalesPage() {
                   <span>
                     Rs.{' '}
                     {
-                      selectedSale.finalAmount
+                      selectedNumber(sale.finalAmount)
                     }
                   </span>
                 </div>
