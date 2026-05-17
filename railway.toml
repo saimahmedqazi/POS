@@ -2,5 +2,5 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "cd apps/api && pnpm prisma migrate deploy && pnpm start:prod"
+startCommand = "npx prisma migrate deploy && node dist/main"
 restartPolicyType = "ON_FAILURE"
