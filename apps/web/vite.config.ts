@@ -5,6 +5,7 @@ import {
 import react from '@vitejs/plugin-react';
 
 import tailwindcss from '@tailwindcss/vite';
+
 import {
   VitePWA,
 } from 'vite-plugin-pwa';
@@ -14,58 +15,73 @@ export default defineConfig({
     react(),
 
     tailwindcss(),
+
     VitePWA({
-  registerType:
-    'autoUpdate',
+      registerType:
+        'autoUpdate',
 
-  includeAssets: [
-    'favicon.svg',
-  ],
+      includeAssets: [
+        'favicon.svg',
+      ],
 
-  manifest: {
-    name:
-      'POS ERP',
+      manifest: {
+        name:
+          'POS ERP',
 
-    short_name:
-      'POS',
+        short_name:
+          'POS',
 
-    theme_color:
-      '#0f172a',
+        theme_color:
+          '#0f172a',
 
-    background_color:
-      '#ffffff',
+        background_color:
+          '#ffffff',
 
-    display:
-      'standalone',
+        display:
+          'standalone',
 
-    start_url: '/',
+        start_url: '/',
 
-    icons: [
-      {
-        src: 'pwa-192.png',
-        sizes: '192x192',
-        type: 'image/png',
+        icons: [
+          {
+            src: 'pwa-192.png',
+
+            sizes:
+              '192x192',
+
+            type:
+              'image/png',
+          },
+
+          {
+            src: 'pwa-512.png',
+
+            sizes:
+              '512x512',
+
+            type:
+              'image/png',
+          },
+        ],
       },
 
-      {
-        src: 'pwa-512.png',
-        sizes: '512x512',
-        type: 'image/png',
+      workbox: {
+        globPatterns: [
+          '**/*.{js,css,html,png,svg}',
+        ],
       },
-    ],
-  },
-
-  workbox: {
-    globPatterns: [
-      '**/*.{js,css,html,png,svg}',
-    ],
-  },
-}),
+    }),
   ],
 
   server: {
     host: true,
-    port: 5173
-  }
-}
-);
+
+    port: 5173,
+
+    watch: {
+      ignored: [
+        '**/src-tauri/**',
+      ],
+    },
+  },
+});

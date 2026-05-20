@@ -1,69 +1,18 @@
 import axios from 'axios';
 
-import {
-  useAuthStore,
-} from '../store/auth.store';
+const API_URL =
+  import.meta.env
+    .VITE_API_URL ||
+  'http://localhost:3000';
 
 const api = axios.create({
   baseURL:
-    `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api/v1`,
+    `${API_URL.replace(/\/$/, '')}/api/v1`,
 
   headers: {
     'Content-Type':
       'application/json',
   },
 });
-
-api.interceptors.request.use(
-  (config) => {
-    const token =
-      useAuthStore.getState()
-        .token;
-
-    if (token) {
-      config.headers.Authorization =
-        `Bearer ${token}`;
-    }
-
-    return config;
-  },
-);
-
-api.interceptors.response.use(
-  (response) => response,
-
-  async (error) => {
-    // NETWORK ERROR
-    if (
-      !error.response
-    ) {
-      return Promise.reject(
-        error,
-      );
-    }
-
-    // REAL AUTH FAILURE
-    if (
-      error.response
-        ?.status === 401
-    ) {
-      // ONLY logout if online
-      if (
-        navigator.onLine
-      ) {
-        await useAuthStore
-          .getState()
-          .logout();
-
-        window.location.href =
-          '/login';
-      }
-    }
-
-    return Promise.reject(
-      error,
-    );
-  },
-);
 
 export default api;

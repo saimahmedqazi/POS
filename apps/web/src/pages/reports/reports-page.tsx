@@ -3,8 +3,6 @@ import {
   useState,
 } from 'react';
 
-import api from '../../api/client';
-
 import AppLayout from '../../layouts/app-layout';
 
 import Card from '../../components/ui/card';
@@ -24,6 +22,10 @@ import {
   TableRow,
   TableCell,
 } from '../../components/ui/table';
+
+import {
+  getDatabase,
+} from '../../lib/database';
 
 type DailySales = {
   totalRevenue: number;
@@ -63,34 +65,22 @@ type TopProduct = {
   totalRevenue: number;
 };
 
-type LedgerEntry = {
-  id: string;
+type CustomerBalance = {
+  name: string;
 
-  amount: number;
-
-  type: string;
-
-  referenceType?: string;
-
-  createdAt: string;
-
-  customer: {
-    name: string;
-  };
+  current_balance: number;
 };
 
 type Sale = {
   id: string;
 
-  finalAmount: number;
+  final_amount: number;
 
-  paymentStatus: string;
+  payment_status: string;
 
-  createdAt: string;
+  created_at: string;
 
-  customer?: {
-    name: string;
-  };
+  customer_name?: string;
 };
 
 export default function ReportsPage() {
@@ -123,10 +113,10 @@ export default function ReportsPage() {
   );
 
   const [
-    ledgerEntries,
-    setLedgerEntries,
+    customerBalances,
+    setCustomerBalances,
   ] = useState<
-    LedgerEntry[]
+    CustomerBalance[]
   >([]);
 
   const [
@@ -144,7 +134,6 @@ export default function ReportsPage() {
     setActiveTab,
   ] = useState<
     | 'sales'
-    | 'ledger'
     | 'inventory'
     | 'customers'
   >('sales');
@@ -154,18 +143,13 @@ export default function ReportsPage() {
     setSelectedPaymentType,
   ] = useState('');
 
-  const [
-    selectedDateRange,
-    setSelectedDateRange,
-  ] = useState('today');
-
   const filteredSales =
     sales.filter(
       (sale) => {
         if (
           selectedPaymentType &&
-          sale.paymentStatus !==
-            selectedPaymentType
+          sale.payment_status !==
+          selectedPaymentType
         ) {
           return false;
         }
@@ -174,69 +158,251 @@ export default function ReportsPage() {
       },
     );
 
-  useEffect(() => {
-    const fetchReports =
+const safeMoney = (
+  value: any,
+) =>
+  Number(
+    Number(
+      value || 0,
+    ).toFixed(2),
+  );
+  const loadReports =
       async () => {
         try {
-          const [
-            analyticsRes,
-            profitRes,
-            inventoryRes,
-            topProductsRes,
-            ledgerRes,
-            salesListRes,
-          ] =
-            await Promise.all([
-              api.get(
-                '/reports/daily-sales',
-              ),
+          const db =
+            getDatabase();
 
-              api.get(
-                '/reports/profit-summary',
-              ),
-
-              api.get(
-                '/reports/inventory-valuation',
-              ),
-
-              api.get(
-                '/reports/top-products',
-              ),
-
-              api.get(
-                '/ledger',
-              ),
-
-              api.get(
-                '/sales',
-              ),
-            ]);
-
-          setDailySales(
-            analyticsRes.data,
-          );
-
-          setProfitSummary(
-            profitRes.data,
-          );
-
-          setInventoryValuation(
-            inventoryRes.data,
-          );
-
-          setTopProducts(
-            topProductsRes.data,
-          );
-
-          setLedgerEntries(
-            ledgerRes.data,
-          );
+          // SALES
+          const salesData =
+            await db.select(
+              `
+              SELECT
+                sales.*,
+                customers.name as customer_name
+              FROM sales
+              LEFT JOIN customers
+              ON sales.customer_id = customers.id
+              ORDER BY sales.created_at DESC
+              `,
+            );
 
           setSales(
-            salesListRes.data,
+            salesData as Sale[],
+          );
+
+          // DAILY SALES
+          const dailyResult =
+            await db.select(
+              `
+              SELECT
+                COUNT(*) as totalTransactions,
+                COALESCE(
+                  SUM(final_amount),
+                  0
+                ) as totalRevenue
+              FROM sales
+              `,
+            );
+
+          const daily =
+            (
+              dailyResult as any[]
+            )[0];
+
+          const totalRevenue =
+            Number(
+              daily.totalRevenue ||
+              0,
+            );
+
+          const totalTransactions =
+            Number(
+              daily.totalTransactions ||
+              0,
+            );
+
+          setDailySales({
+            totalRevenue,
+
+            totalTransactions,
+
+            averageOrderValue:
+              totalTransactions >
+                0
+                ? totalRevenue /
+                totalTransactions
+                : 0,
+          });
+
+          // PRODUCTS
+          const products =
+            await db.select(
+              `
+              SELECT *
+              FROM products
+              `,
+            );
+
+          const totalQuantity =
+            (
+              products as any[]
+            ).reduce(
+              (
+                sum: number,
+                product: any,
+              ) =>
+                sum +
+                Number(
+                  product.quantity ||
+                  0,
+                ),
+              0,
+            );
+
+          const totalCostValue =
+  safeMoney(
+    (
+      products as any[]
+    ).reduce(
+      (
+        sum: number,
+        product: any,
+      ) =>
+        sum +
+        safeMoney(
+          safeMoney(
+            product.cost_price,
+          ) *
+            Number(
+              product.quantity ||
+                0,
+            ),
+        ),
+      0,
+    ),
+  );
+          const totalSaleValue =
+  safeMoney(
+    (
+      products as any[]
+    ).reduce(
+      (
+        sum: number,
+        product: any,
+      ) =>
+        sum +
+        safeMoney(
+          safeMoney(
+            product.sale_price,
+          ) *
+            Number(
+              product.quantity ||
+                0,
+            ),
+        ),
+      0,
+    ),
+  );
+
+         const grossProfit =
+  safeMoney(
+    totalSaleValue -
+      totalCostValue,
+  );
+
+          setProfitSummary({
+            totalRevenue,
+
+            totalCost:
+              totalCostValue,
+
+            grossProfit,
+
+            profitMargin:
+              totalRevenue > 0
+                ? (
+                  grossProfit /
+                  totalRevenue
+                ) *
+                100
+                : 0,
+          });
+
+          setInventoryValuation({
+            totalQuantity,
+
+            totalCostValue,
+
+            totalSaleValue,
+
+            estimatedProfit:
+              grossProfit,
+          });
+
+         // TOP PRODUCTS
+const topProductsResult =
+  await db.select(
+    `
+    SELECT
+      products.id as productId,
+      products.name as productName,
+      COALESCE(
+        SUM(sale_items.quantity),
+        0
+      ) as totalQuantitySold,
+      COALESCE(
+        SUM(sale_items.subtotal),
+        0
+      ) as totalRevenue
+    FROM sale_items
+    INNER JOIN products
+      ON sale_items.product_id =
+         products.id
+    GROUP BY products.id
+    ORDER BY totalRevenue DESC
+    LIMIT 10
+    `,
+  );
+
+setTopProducts(
+  (topProductsResult as any[])
+    .map(
+      (product: any) => ({
+        productId:
+          product.productId,
+
+        productName:
+          product.productName,
+
+        totalQuantitySold:
+          Number(
+            product.totalQuantitySold ||
+              0,
+          ),
+
+        totalRevenue:
+          safeMoney(
+            product.totalRevenue,
+          ),
+      }),
+    ),
+);
+
+          // CUSTOMERS
+          const customers =
+            await db.select(
+              `
+              SELECT *
+              FROM customers
+              ORDER BY current_balance DESC
+              `,
+            );
+
+          setCustomerBalances(
+            customers as CustomerBalance[],
           );
         } catch (
-          error
+        error
         ) {
           console.error(
             error,
@@ -246,7 +412,10 @@ export default function ReportsPage() {
         }
       };
 
-    fetchReports();
+  useEffect(() => {
+    
+
+    loadReports();
   }, []);
 
   if (loading) {
@@ -262,66 +431,44 @@ export default function ReportsPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <PageHeader
-          title="Reports & Analytics"
-          subtitle="Business insights and performance"
-        />
+         <div className="flex items-center justify-between">
+  <PageHeader
+    title="Reports & Analytics"
+    subtitle="Offline business analytics"
+  />
 
+  <Button
+    onClick={loadReports}
+  >
+    Refresh Reports
+  </Button>
+</div>
         <Card className="mb-6">
-          <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
-            <div className="flex flex-wrap gap-4">
-              <select
-                value={
-                  selectedDateRange
-                }
-                onChange={(e) =>
-                  setSelectedDateRange(
-                    e.target.value,
-                  )
-                }
-                className="border border-slate-200 rounded-2xl px-4 py-3 bg-white min-w-[180px]"
-              >
-                <option value="today">
-                  Today
-                </option>
+          <div className="flex gap-4">
+            <select
+              value={
+                selectedPaymentType
+              }
+              onChange={(e) =>
+                setSelectedPaymentType(
+                  e.target
+                    .value,
+                )
+              }
+              className="border border-slate-200 rounded-2xl px-4 py-3 bg-white min-w-[180px]"
+            >
+              <option value="">
+                All Payments
+              </option>
 
-                <option value="week">
-                  This Week
-                </option>
+              <option value="PAID">
+                Paid
+              </option>
 
-                <option value="month">
-                  This Month
-                </option>
-
-                <option value="all">
-                  All Time
-                </option>
-              </select>
-
-              <select
-                value={
-                  selectedPaymentType
-                }
-                onChange={(e) =>
-                  setSelectedPaymentType(
-                    e.target.value,
-                  )
-                }
-                className="border border-slate-200 rounded-2xl px-4 py-3 bg-white min-w-[180px]"
-              >
-                <option value="">
-                  All Payments
-                </option>
-
-                <option value="PAID">
-                  Paid
-                </option>
-
-                <option value="CREDIT">
-                  Credit
-                </option>
-              </select>
-            </div>
+              <option value="CREDIT">
+                Credit
+              </option>
+            </select>
           </div>
         </Card>
 
@@ -330,11 +477,6 @@ export default function ReportsPage() {
             {
               key: 'sales',
               label: 'Sales',
-            },
-
-            {
-              key: 'ledger',
-              label: 'Ledger',
             },
 
             {
@@ -351,7 +493,7 @@ export default function ReportsPage() {
               key={tab.key}
               variant={
                 activeTab ===
-                tab.key
+                  tab.key
                   ? 'primary'
                   : 'secondary'
               }
@@ -368,486 +510,313 @@ export default function ReportsPage() {
 
         {activeTab ===
           'sales' && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-              <StatCard
-                title="Revenue"
-                value={`Rs. ${dailySales?.totalRevenue}`}
-              />
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                <StatCard
+                  title="Revenue"
+                  value={`Rs. ${Number(
+                    dailySales?.totalRevenue ||
+                    0,
+                  ).toFixed(2)}`}
+                />
 
-              <StatCard
-                title="Transactions"
-                value={
-                  dailySales?.totalTransactions ||
-                  0
-                }
-              />
+                <StatCard
+                  title="Transactions"
+                  value={
+                    dailySales?.totalTransactions ||
+                    0
+                  }
+                />
 
-              <StatCard
-                title="Gross Profit"
-                value={`Rs. ${profitSummary?.grossProfit}`}
-              />
+                <StatCard
+                  title="Gross Profit"
+                  value={`Rs. ${Number(
+                    profitSummary?.grossProfit ||
+                    0,
+                  ).toFixed(2)}`}
+                />
 
-              <StatCard
-                title="Inventory Quantity"
-                value={
-                  inventoryValuation?.totalQuantity ||
-                  0
-                }
-              />
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <Card>
-                <h2 className="text-xl font-semibold mb-6">
-                  Profit Summary
-                </h2>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Revenue
-                    </span>
-
-                    <span className="font-semibold">
-                      Rs.{' '}
-                      {
-                        profitSummary?.totalRevenue
-                      }
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Cost
-                    </span>
-
-                    <span className="font-semibold">
-                      Rs.{' '}
-                      {
-                        profitSummary?.totalCost
-                      }
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Margin
-                    </span>
-
-                    <span className="font-semibold">
-                      {
-                        profitSummary?.profitMargin
-                      }
-                      %
-                    </span>
-                  </div>
-                </div>
-              </Card>
-
-              <Card>
-                <h2 className="text-xl font-semibold mb-6">
-                  Inventory Valuation
-                </h2>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Cost Value
-                    </span>
-
-                    <span className="font-semibold">
-                      Rs.{' '}
-                      {
-                        inventoryValuation?.totalCostValue
-                      }
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Sale Value
-                    </span>
-
-                    <span className="font-semibold">
-                      Rs.{' '}
-                      {
-                        inventoryValuation?.totalSaleValue
-                      }
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Estimated Profit
-                    </span>
-
-                    <span className="font-semibold">
-                      Rs.{' '}
-                      {
-                        inventoryValuation?.estimatedProfit
-                      }
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            </div>
-
-            <Card>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">
-                  Top Products
-                </h2>
-
-                <Badge variant="neutral">
-                  {
-                    topProducts.length
-                  }{' '}
-                  Products
-                </Badge>
+                <StatCard
+                  title="Inventory Quantity"
+                  value={
+                    inventoryValuation?.totalQuantity ||
+                    0
+                  }
+                />
               </div>
 
-              <Table>
-                <TableHead>
-                  <tr>
-                    <th className="text-left p-4">
-                      Product
-                    </th>
+              <Card>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold">
+                    Top Products
+                  </h2>
 
-                    <th className="text-left p-4">
-                      Quantity Sold
-                    </th>
+                  <Badge variant="neutral">
+                    {
+                      topProducts.length
+                    }{' '}
+                    Products
+                  </Badge>
+                </div>
 
-                    <th className="text-left p-4">
-                      Revenue
-                    </th>
-                  </tr>
-                </TableHead>
+                <Table>
+                  <TableHead>
+                    <tr>
+                      <th className="text-left p-4">
+                        Product
+                      </th>
 
-                <TableBody>
-                  {topProducts.map(
-                    (
-                      product,
-                    ) => (
-                      <TableRow
-                        key={
-                          product.productId
-                        }
-                      >
-                        <TableCell>
-                          {
-                            product.productName
+                      <th className="text-left p-4">
+                        Qty Sold
+                      </th>
+
+                      <th className="text-left p-4">
+                        Revenue
+                      </th>
+                    </tr>
+                  </TableHead>
+
+                  <TableBody>
+                    {topProducts.map(
+                      (
+                        product,
+                      ) => (
+                        <TableRow
+                          key={
+                            product.productId
                           }
-                        </TableCell>
+                        >
+                          <TableCell>
+                            {
+                              product.productName
+                            }
+                          </TableCell>
 
-                        <TableCell>
-                          {
-                            product.totalQuantitySold
-                          }
-                        </TableCell>
+                          <TableCell>
+                            {
+                              product.totalQuantitySold
+                            }
+                          </TableCell>
 
-                        <TableCell>
-                          <span className="font-semibold">
+                          <TableCell>
                             Rs.{' '}
                             {
                               product.totalRevenue
                             }
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ),
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
+                          </TableCell>
+                        </TableRow>
+                      ),
+                    )}
+                  </TableBody>
+                </Table>
+              </Card>
 
-            <Card>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">
-                  Sales Report
-                </h2>
+              <Card>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold">
+                    Sales Report
+                  </h2>
 
-                <Badge variant="neutral">
-                  {
-                    filteredSales.length
-                  }{' '}
-                  Sales
-                </Badge>
-              </div>
+                  <Badge variant="neutral">
+                    {
+                      filteredSales.length
+                    }{' '}
+                    Sales
+                  </Badge>
+                </div>
 
-              <Table>
-                <TableHead>
-                  <tr>
-                    <th className="text-left p-4">
-                      Invoice
-                    </th>
+                <Table>
+                  <TableHead>
+                    <tr>
+                      <th className="text-left p-4">
+                        Invoice
+                      </th>
 
-                    <th className="text-left p-4">
-                      Customer
-                    </th>
+                      <th className="text-left p-4">
+                        Customer
+                      </th>
 
-                    <th className="text-left p-4">
-                      Payment
-                    </th>
+                      <th className="text-left p-4">
+                        Payment
+                      </th>
 
-                    <th className="text-left p-4">
-                      Amount
-                    </th>
+                      <th className="text-left p-4">
+                        Amount
+                      </th>
 
-                    <th className="text-left p-4">
-                      Date
-                    </th>
-                  </tr>
-                </TableHead>
+                      <th className="text-left p-4">
+                        Date
+                      </th>
+                    </tr>
+                  </TableHead>
 
-                <TableBody>
-                  {filteredSales.map(
-                    (
-                      sale,
-                    ) => (
-                      <TableRow
-                        key={
-                          sale.id
-                        }
-                      >
-                        <TableCell>
-                          <span className="font-medium">
+                  <TableBody>
+                    {filteredSales.map(
+                      (
+                        sale,
+                      ) => (
+                        <TableRow
+                          key={sale.id}
+                        >
+                          <TableCell>
                             #
                             {sale.id.slice(
                               0,
                               8,
                             )}
-                          </span>
-                        </TableCell>
+                          </TableCell>
 
-                        <TableCell>
-                          {sale
-                            .customer
-                            ?.name ||
-                            'Walk-in'}
-                        </TableCell>
+                          <TableCell>
+                            {sale.customer_name ||
+                              'Walk-in'}
+                          </TableCell>
 
-                        <TableCell>
-                          <Badge
-                            variant={
-                              sale.paymentStatus ===
-                              'CREDIT'
-                                ? 'danger'
-                                : 'success'
-                            }
-                          >
-                            {
-                              sale.paymentStatus
-                            }
-                          </Badge>
-                        </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                sale.payment_status ===
+                                  'CREDIT'
+                                  ? 'danger'
+                                  : 'success'
+                              }
+                            >
+                              {
+                                sale.payment_status
+                              }
+                            </Badge>
+                          </TableCell>
 
-                        <TableCell>
-                          <span className="font-semibold">
+                          <TableCell>
                             Rs.{' '}
-                            {
-                              Number(sale.finalAmount)
-                            }
-                          </span>
-                        </TableCell>
+                            {Number(
+                              sale.final_amount,
+                            ).toFixed(
+                              2,
+                            )}
+                          </TableCell>
 
-                        <TableCell>
-                          {new Date(
-                            sale.createdAt,
-                          ).toLocaleString()}
-                        </TableCell>
-                      </TableRow>
-                    ),
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-          </>
-        )}
-
-        {activeTab ===
-          'ledger' && (
-          <Table>
-            <TableHead>
-              <tr>
-                <th className="text-left p-4">
-                  Date
-                </th>
-
-                <th className="text-left p-4">
-                  Customer
-                </th>
-
-                <th className="text-left p-4">
-                  Type
-                </th>
-
-                <th className="text-left p-4">
-                  Reference
-                </th>
-
-                <th className="text-left p-4">
-                  Amount
-                </th>
-              </tr>
-            </TableHead>
-
-            <TableBody>
-              {ledgerEntries.map(
-                (
-                  entry,
-                ) => (
-                  <TableRow
-                    key={entry.id}
-                  >
-                    <TableCell>
-                      {new Date(
-                        entry.createdAt,
-                      ).toLocaleString()}
-                    </TableCell>
-
-                    <TableCell>
-                      {
-                        entry.customer
-                          .name
-                      }
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge
-                        variant={
-                          entry.type ===
-                          'DEBIT'
-                            ? 'danger'
-                            : 'success'
-                        }
-                      >
-                        {
-                          entry.type
-                        }
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell>
-                      {entry.referenceType ||
-                        '-'}
-                    </TableCell>
-
-                    <TableCell>
-                      <span className="font-semibold">
-                        Rs.{' '}
-                        {
-                          entry.amount
-                        }
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ),
-              )}
-            </TableBody>
-          </Table>
-        )}
+                          <TableCell>
+                            {new Date(
+                              sale.created_at,
+                            ).toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ),
+                    )}
+                  </TableBody>
+                </Table>
+              </Card>
+            </>
+          )}
 
         {activeTab ===
           'inventory' && (
-          <Table>
-            <TableHead>
-              <tr>
-                <th className="text-left p-4">
-                  Total Quantity
-                </th>
+            <Table>
+              <TableHead>
+                <tr>
+                  <th className="text-left p-4">
+                    Total Quantity
+                  </th>
 
-                <th className="text-left p-4">
-                  Cost Value
-                </th>
+                  <th className="text-left p-4">
+                    Cost Value
+                  </th>
 
-                <th className="text-left p-4">
-                  Sale Value
-                </th>
+                  <th className="text-left p-4">
+                    Sale Value
+                  </th>
 
-                <th className="text-left p-4">
-                  Estimated Profit
-                </th>
-              </tr>
-            </TableHead>
+                  <th className="text-left p-4">
+                    Estimated Profit
+                  </th>
+                </tr>
+              </TableHead>
 
-            <TableBody>
-              <TableRow>
-                <TableCell>
-                  {
-                    inventoryValuation?.totalQuantity
-                  }
-                </TableCell>
+              <TableBody>
+                <TableRow>
+                  <TableCell>
+                    {
+                      inventoryValuation?.totalQuantity
+                    }
+                  </TableCell>
 
-                <TableCell>
-                  Rs.{' '}
-                  {
-                    inventoryValuation?.totalCostValue
-                  }
-                </TableCell>
+                  <TableCell>
+                    Rs.{' '}
+                    {
+                      Number(
+                        inventoryValuation?.totalCostValue ||
+                        0,
+                      ).toFixed(2)
+                    }
+                  </TableCell>
 
-                <TableCell>
-                  Rs.{' '}
-                  {
-                    inventoryValuation?.totalSaleValue
-                  }
-                </TableCell>
+                  <TableCell>
+                    Rs.{' '}
+                    {
+                      Number(
+                        inventoryValuation?.totalSaleValue ||
+                        0,
+                      ).toFixed(2)
+                    }
+                  </TableCell>
 
-                <TableCell>
-                  Rs.{' '}
-                  {
-                    inventoryValuation?.estimatedProfit
-                  }
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        )}
+                  <TableCell>
+                    Rs.{' '}
+                    {
+                      Number(
+                        inventoryValuation?.estimatedProfit ||
+                        0,
+                      ).toFixed(2)
+                    }
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          )}
 
         {activeTab ===
           'customers' && (
-          <Table>
-            <TableHead>
-              <tr>
-                <th className="text-left p-4">
-                  Customer
-                </th>
+            <Table>
+              <TableHead>
+                <tr>
+                  <th className="text-left p-4">
+                    Customer
+                  </th>
 
-                <th className="text-left p-4">
-                  Balance
-                </th>
-              </tr>
-            </TableHead>
+                  <th className="text-left p-4">
+                    Balance
+                  </th>
+                </tr>
+              </TableHead>
 
-            <TableBody>
-              {ledgerEntries.map(
-                (
-                  entry,
-                ) => (
-                  <TableRow
-                    key={entry.id}
-                  >
-                    <TableCell>
-                      {
-                        entry.customer
-                          .name
+              <TableBody>
+                {customerBalances.map(
+                  (
+                    customer,
+                  ) => (
+                    <TableRow
+                      key={
+                        customer.name
                       }
-                    </TableCell>
+                    >
+                      <TableCell>
+                        {
+                          customer.name
+                        }
+                      </TableCell>
 
-                    <TableCell>
-                      <span className="font-semibold">
+                      <TableCell>
                         Rs.{' '}
                         {
-                          entry.amount
+                          customer.current_balance
                         }
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ),
-              )}
-            </TableBody>
-          </Table>
-        )}
+                      </TableCell>
+                    </TableRow>
+                  ),
+                )}
+              </TableBody>
+            </Table>
+          )}
       </div>
     </AppLayout>
   );

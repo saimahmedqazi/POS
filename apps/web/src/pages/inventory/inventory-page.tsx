@@ -3,8 +3,6 @@ import {
   useState,
 } from 'react';
 
-import api from '../../api/client';
-
 import AppLayout from '../../layouts/app-layout';
 
 import Card from '../../components/ui/card';
@@ -25,6 +23,14 @@ import {
   TableCell,
 } from '../../components/ui/table';
 
+import {
+  getProducts,
+  createProduct,
+  updateProduct,
+  archiveProduct,
+  adjustProductStock,
+} from '../../repositories/product.repository';
+
 type Product = {
   id: string;
 
@@ -38,9 +44,7 @@ type Product = {
 
   costPrice: number;
 
-  inventory?: {
-    quantity: number;
-  }[];
+  quantity: number;
 };
 
 export default function InventoryPage() {
@@ -86,7 +90,7 @@ export default function InventoryPage() {
   const [
     editingProduct,
     setEditingProduct,
-  ] = useState<any>(
+  ] = useState<Product | null>(
     null,
   );
 
@@ -100,101 +104,206 @@ export default function InventoryPage() {
     setAdjustingStock,
   ] = useState(false);
 
-  useEffect(() => {
-    const fetchProducts =
-      async () => {
-        try {
-          const response =
-            await api.get(
-              '/products',
-            );
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState('');
 
-          setProducts(
-            response.data,
-          );
-        } catch (
-          error: any
-        ) {
-          console.error(
-            error,
-          );
-        } finally {
-          setLoading(false);
-        }
-      };
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] = useState('');
 
-    fetchProducts();
-  }, []);
+  const [
+    archiveTarget,
+    setArchiveTarget,
+  ] = useState<Product | null>(
+    null,
+  );
 
-  const handleCreateProduct =
+  const loadProducts =
     async () => {
       try {
-        setCreating(true);
+        const localProducts =
+          await getProducts();
 
-        const response =
-          await api.post(
-            '/products',
-            {
-              name,
+        setProducts(
+          (
+            localProducts as any[]
+          ).map(
+            (
+              product: any,
+            ) => ({
+              id: product.id,
 
-              sku,
+              name:
+                product.name,
 
-              barcode,
+              sku:
+                product.sku ||
+                '',
+
+              barcode:
+                product.barcode ||
+                '',
 
               salePrice:
                 Number(
-                  salePrice,
+                  product.sale_price ||
+                    0,
                 ),
 
               costPrice:
                 Number(
-                  costPrice,
+                  product.cost_price ||
+                    0,
                 ),
-            },
-          );
 
-        await api.post(
-          '/inventory/adjust',
-          {
-            productId:
-              response.data.id,
-
-            quantity:
-              Number(
-                quantity,
-              ),
-
-            type:
-              'PURCHASE',
-          },
+              quantity:
+                Number(
+                  product.quantity ||
+                    0,
+                ),
+            }),
+          ),
+        );
+      } catch (
+        error
+      ) {
+        console.error(
+          'Failed loading products',
+          error,
         );
 
-        setProducts([
-          {
-            ...response.data,
+        setErrorMessage(
+          'Failed loading inventory',
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
-            inventory: [
-              {
-                quantity:
-                  Number(
-                    quantity,
-                  ),
-              },
-            ],
-          },
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const resetCreateForm =
+    () => {
+      setName('');
+      setSku('');
+      setBarcode('');
+      setSalePrice('');
+      setCostPrice('');
+      setQuantity('');
+    };
+
+  const handleCreateProduct =
+    async () => {
+      if (creating) {
+        return;
+      }
+
+      const trimmedName =
+        name.trim();
+
+      const trimmedSku =
+        sku.trim();
+
+      const trimmedBarcode =
+        barcode.trim();
+
+      const parsedSalePrice =
+        Number(salePrice);
+
+      const parsedCostPrice =
+        Number(costPrice);
+
+      const parsedQuantity =
+        Math.floor(
+          Number(quantity),
+        );
+
+      if (!trimmedName) {
+        setErrorMessage(
+          'Product name required',
+        );
+
+        return;
+      }
+
+      if (
+        !Number.isFinite(
+          parsedSalePrice,
+        ) ||
+        parsedSalePrice < 0
+      ) {
+        setErrorMessage(
+          'Invalid sale price',
+        );
+
+        return;
+      }
+
+      if (
+        !Number.isFinite(
+          parsedCostPrice,
+        ) ||
+        parsedCostPrice < 0
+      ) {
+        setErrorMessage(
+          'Invalid cost price',
+        );
+
+        return;
+      }
+
+      if (
+        !Number.isFinite(
+          parsedQuantity,
+        ) ||
+        parsedQuantity < 0
+      ) {
+        setErrorMessage(
+          'Invalid quantity',
+        );
+
+        return;
+      }
+
+      try {
+        setCreating(true);
+
+        const product =
+          await createProduct({
+            name:
+              trimmedName,
+
+            sku:
+              trimmedSku,
+
+            barcode:
+              trimmedBarcode,
+
+            salePrice:
+              parsedSalePrice,
+
+            costPrice:
+              parsedCostPrice,
+
+            quantity:
+              parsedQuantity,
+          });
+
+        setProducts([
+          product as Product,
 
           ...products,
         ]);
 
-        setName('');
-        setSku('');
-        setBarcode('');
-        setSalePrice('');
-        setCostPrice('');
-        setQuantity('');
+        resetCreateForm();
 
-        alert(
-          'Product created',
+        setSuccessMessage(
+          'Product created successfully',
         );
       } catch (
         error: any
@@ -203,9 +312,8 @@ export default function InventoryPage() {
           error,
         );
 
-        alert(
-          error.response?.data
-            ?.message ||
+        setErrorMessage(
+          error.message ||
             'Failed to create product',
         );
       } finally {
@@ -215,31 +323,91 @@ export default function InventoryPage() {
 
   const handleUpdateProduct =
     async () => {
+      if (
+        !editingProduct
+      ) {
+        return;
+      }
+
+      if (creating) {
+        return;
+      }
+
+      const trimmedName =
+        editingProduct.name.trim();
+
+      const trimmedSku =
+        editingProduct.sku.trim();
+
+      const trimmedBarcode =
+        editingProduct.barcode.trim();
+
+      const parsedSalePrice =
+        Number(
+          editingProduct.salePrice,
+        );
+
+      const parsedCostPrice =
+        Number(
+          editingProduct.costPrice,
+        );
+
+      if (!trimmedName) {
+        setErrorMessage(
+          'Product name required',
+        );
+
+        return;
+      }
+
+      if (
+        !Number.isFinite(
+          parsedSalePrice,
+        ) ||
+        parsedSalePrice < 0
+      ) {
+        setErrorMessage(
+          'Invalid sale price',
+        );
+
+        return;
+      }
+
+      if (
+        !Number.isFinite(
+          parsedCostPrice,
+        ) ||
+        parsedCostPrice < 0
+      ) {
+        setErrorMessage(
+          'Invalid cost price',
+        );
+
+        return;
+      }
+
       try {
-        const response =
-          await api.patch(
-            `/products/${editingProduct.id}`,
-            {
-              name:
-                editingProduct.name,
+        setCreating(true);
 
-              sku:
-                editingProduct.sku,
+        const updated =
+          await updateProduct({
+            ...editingProduct,
 
-              barcode:
-                editingProduct.barcode,
+            name:
+              trimmedName,
 
-              salePrice:
-                Number(
-                  editingProduct.salePrice,
-                ),
+            sku:
+              trimmedSku,
 
-              costPrice:
-                Number(
-                  editingProduct.costPrice,
-                ),
-            },
-          );
+            barcode:
+              trimmedBarcode,
+
+            salePrice:
+              parsedSalePrice,
+
+            costPrice:
+              parsedCostPrice,
+          });
 
         setProducts(
           products.map(
@@ -248,11 +416,7 @@ export default function InventoryPage() {
             ) =>
               product.id ===
               editingProduct.id
-                ? {
-                    ...product,
-
-                    ...response.data,
-                  }
+                ? (updated as Product)
                 : product,
           ),
         );
@@ -261,17 +425,22 @@ export default function InventoryPage() {
           null,
         );
 
-        alert(
-          'Product updated',
+        setSuccessMessage(
+          'Product updated successfully',
         );
       } catch (
         error: any
       ) {
-        alert(
-          error.response?.data
-            ?.message ||
+        console.error(
+          error,
+        );
+
+        setErrorMessage(
+          error.message ||
             'Failed to update product',
         );
+      } finally {
+        setCreating(false);
       }
     };
 
@@ -283,75 +452,115 @@ export default function InventoryPage() {
         return;
       }
 
+      if (
+        adjustingStock
+      ) {
+        return;
+      }
+
+      const adjustment =
+        Math.floor(
+          Number(
+            adjustmentQuantity,
+          ),
+        );
+
+      if (
+        !Number.isFinite(
+          adjustment,
+        )
+      ) {
+        setErrorMessage(
+          'Invalid adjustment quantity',
+        );
+
+        return;
+      }
+
+      if (
+        adjustment === 0
+      ) {
+        setErrorMessage(
+          'Adjustment cannot be zero',
+        );
+
+        return;
+      }
+
+      if (
+        Math.abs(
+          adjustment,
+        ) > 100000
+      ) {
+        setErrorMessage(
+          'Adjustment too large',
+        );
+
+        return;
+      }
+
+      const futureQuantity =
+        editingProduct.quantity +
+        adjustment;
+
+      if (
+        futureQuantity < 0
+      ) {
+        setErrorMessage(
+          'Insufficient stock',
+        );
+
+        return;
+      }
+
       try {
         setAdjustingStock(
           true,
         );
 
-        const quantity =
-          Number(
-            adjustmentQuantity,
+        const updated =
+          await adjustProductStock(
+            editingProduct.id,
+            adjustment,
           );
-
-        await api.post(
-          '/inventory/adjust',
-          {
-            productId:
-              editingProduct.id,
-
-            type:
-              'ADJUSTMENT',
-
-            quantity,
-          },
-        );
 
         setProducts(
           products.map(
             (
               product,
-            ) => {
-              if (
-                product.id !==
-                editingProduct.id
-              ) {
-                return product;
-              }
-
-              const currentQty =
-                product
-                  .inventory?.[0]
-                  ?.quantity ||
-                0;
-
-              return {
-                ...product,
-
-                inventory: [
-                  {
-                    quantity:
-                      currentQty +
-                      quantity,
-                  },
-                ],
-              };
-            },
+            ) =>
+              product.id ===
+              editingProduct.id
+                ? (updated as Product)
+                : product,
           ),
         );
+
+        setEditingProduct({
+          ...editingProduct,
+
+          quantity:
+            (
+              updated as any
+            ).quantity,
+        });
 
         setAdjustmentQuantity(
           '',
         );
 
-        alert(
-          'Stock adjusted',
+        setSuccessMessage(
+          'Stock adjusted successfully',
         );
       } catch (
         error: any
       ) {
-        alert(
-          error.response?.data
-            ?.message ||
+        console.error(
+          error,
+        );
+
+        setErrorMessage(
+          error.message ||
             'Failed to adjust stock',
         );
       } finally {
@@ -361,22 +570,15 @@ export default function InventoryPage() {
       }
     };
 
-  const handleArchiveProduct =
-    async (
-      productId: string,
-    ) => {
-      const confirmed =
-        confirm(
-          'Archive this product?',
-        );
-
-      if (!confirmed) {
+  const confirmArchiveProduct =
+    async () => {
+      if (!archiveTarget) {
         return;
       }
 
       try {
-        await api.delete(
-          `/products/${productId}`,
+        await archiveProduct(
+          archiveTarget.id,
         );
 
         setProducts(
@@ -385,20 +587,26 @@ export default function InventoryPage() {
               product,
             ) =>
               product.id !==
-              productId,
+              archiveTarget.id,
           ),
         );
 
-        alert(
-          'Product archived',
+        setSuccessMessage(
+          'Product archived successfully',
+        );
+
+        setArchiveTarget(
+          null,
         );
       } catch (
-        error: any
+        error
       ) {
-        alert(
-          error.response?.data
-            ?.message ||
-            'Failed to archive product',
+        console.error(
+          error,
+        );
+
+        setErrorMessage(
+          'Failed to archive product',
         );
       }
     };
@@ -420,6 +628,50 @@ export default function InventoryPage() {
           title="Inventory"
           subtitle="Product stock management"
         />
+
+        {errorMessage && (
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+            <div className="flex items-center justify-between">
+              <span>
+                {errorMessage}
+              </span>
+
+              <button
+                onClick={() =>
+                  setErrorMessage(
+                    '',
+                  )
+                }
+                className="text-red-500 hover:text-red-700"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="mb-4 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+            <div className="flex items-center justify-between">
+              <span>
+                {
+                  successMessage
+                }
+              </span>
+
+              <button
+                onClick={() =>
+                  setSuccessMessage(
+                    '',
+                  )
+                }
+                className="text-green-500 hover:text-green-700"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
 
         <Card className="mb-6">
           <h2 className="text-xl font-semibold mb-4">
@@ -570,23 +822,31 @@ export default function InventoryPage() {
 
                   <TableCell>
                     Rs.{' '}
-                    {
-                      product.costPrice
-                    }
+                    {Number(
+                      product.costPrice,
+                    ).toFixed(2)}
                   </TableCell>
 
                   <TableCell>
                     Rs.{' '}
-                    {
-                      product.salePrice
-                    }
+                    {Number(
+                      product.salePrice,
+                    ).toFixed(2)}
                   </TableCell>
 
                   <TableCell>
-                    {product
-                      .inventory?.[0]
-                      ?.quantity ??
-                      0}
+                    <div
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
+                        product.quantity <=
+                        5
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-green-100 text-green-700'
+                      }`}
+                    >
+                      {
+                        product.quantity
+                      }
+                    </div>
                   </TableCell>
 
                   <TableCell>
@@ -607,8 +867,8 @@ export default function InventoryPage() {
                         variant="danger"
                         className="px-3 py-2"
                         onClick={() =>
-                          handleArchiveProduct(
-                            product.id,
+                          setArchiveTarget(
+                            product,
                           )
                         }
                       >
@@ -643,7 +903,7 @@ export default function InventoryPage() {
             }
             onChange={(e) =>
               setEditingProduct({
-                ...editingProduct,
+                ...editingProduct!,
 
                 name:
                   e.target.value,
@@ -659,7 +919,7 @@ export default function InventoryPage() {
             }
             onChange={(e) =>
               setEditingProduct({
-                ...editingProduct,
+                ...editingProduct!,
 
                 sku:
                   e.target.value,
@@ -675,7 +935,7 @@ export default function InventoryPage() {
             }
             onChange={(e) =>
               setEditingProduct({
-                ...editingProduct,
+                ...editingProduct!,
 
                 barcode:
                   e.target.value,
@@ -691,10 +951,12 @@ export default function InventoryPage() {
             }
             onChange={(e) =>
               setEditingProduct({
-                ...editingProduct,
+                ...editingProduct!,
 
                 salePrice:
-                  e.target.value,
+                  Number(
+                    e.target.value,
+                  ),
               })
             }
           />
@@ -707,10 +969,12 @@ export default function InventoryPage() {
             }
             onChange={(e) =>
               setEditingProduct({
-                ...editingProduct,
+                ...editingProduct!,
 
                 costPrice:
-                  e.target.value,
+                  Number(
+                    e.target.value,
+                  ),
               })
             }
           />
@@ -724,9 +988,7 @@ export default function InventoryPage() {
           <p className="text-sm text-slate-500 mb-3">
             Current Stock:{' '}
             {
-              editingProduct
-                ?.inventory?.[0]
-                ?.quantity
+              editingProduct?.quantity
             }
           </p>
 
@@ -786,6 +1048,87 @@ export default function InventoryPage() {
           >
             Save Changes
           </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!archiveTarget}
+        title="Archive Product"
+        onClose={() =>
+          setArchiveTarget(
+            null,
+          )
+        }
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-red-50 border border-red-200 p-4">
+            <h3 className="font-semibold text-red-700 mb-2">
+              Confirm Archive
+            </h3>
+
+            <div className="space-y-1 text-sm text-slate-700">
+              <p>
+                <strong>
+                  Product:
+                </strong>{' '}
+                {
+                  archiveTarget?.name
+                }
+              </p>
+
+              <p>
+                <strong>
+                  SKU:
+                </strong>{' '}
+                {archiveTarget?.sku ||
+                  '-'}
+              </p>
+
+              <p>
+                <strong>
+                  Barcode:
+                </strong>{' '}
+                {archiveTarget?.barcode ||
+                  '-'}
+              </p>
+
+              <p>
+                <strong>
+                  Stock:
+                </strong>{' '}
+                {
+                  archiveTarget?.quantity
+                }
+              </p>
+            </div>
+          </div>
+
+          <p className="text-sm text-slate-500">
+            This action cannot
+            be undone.
+          </p>
+
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="secondary"
+              onClick={() =>
+                setArchiveTarget(
+                  null,
+                )
+              }
+            >
+              Cancel
+            </Button>
+
+            <Button
+              variant="danger"
+              onClick={
+                confirmArchiveProduct
+              }
+            >
+              Archive Product
+            </Button>
+          </div>
         </div>
       </Modal>
     </AppLayout>

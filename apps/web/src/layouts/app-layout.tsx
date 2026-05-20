@@ -4,7 +4,7 @@ import type {
 
 import {
   Link,
-  useNavigate,
+  useLocation,
 } from 'react-router-dom';
 
 import {
@@ -14,145 +14,178 @@ import {
   BarChart3,
   Users,
   BookOpen,
-  
+  Settings,
   Receipt,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 
 import {
-  useAuthStore,
-} from '../store/auth.store';
-
-import SyncStatus from '../components/sync-status';
+  useAuth,
+} from '../context/auth-context';
 
 type Props = {
   children: ReactNode;
 };
 
+const navigation = [
+  {
+    name: 'Dashboard',
+    path: '/',
+    icon: LayoutDashboard,
+  },
+
+  {
+    name: 'POS',
+    path: '/pos',
+    icon: ShoppingCart,
+  },
+
+  {
+    name: 'Sales',
+    path: '/sales',
+    icon: Receipt,
+  },
+
+  {
+    name: 'Inventory',
+    path: '/inventory',
+    icon: Package,
+  },
+
+  {
+    name: 'Reports',
+    path: '/reports',
+    icon: BarChart3,
+  },
+
+  {
+    name: 'Ledger',
+    path: '/ledger',
+    icon: BookOpen,
+  },
+
+  {
+    name: 'Customers',
+    path: '/customers',
+    icon: Users,
+  },
+
+  {
+    name: 'Settings',
+    path: '/settings',
+    icon: Settings,
+  },
+];
+
 export default function AppLayout({
   children,
 }: Props) {
-  const navigate =
-    useNavigate();
+  const location =
+    useLocation();
 
-  const logout =
-    useAuthStore(
-      (state) =>
-        state.logout,
-    );
-
-  const handleLogout =
-    async () => {
-      await logout();
-
-      navigate(
-        '/login',
-      );
-    };
+  const {
+    currentUser,
+    logout,
+  } = useAuth();
 
   return (
     <div className="flex min-h-screen bg-slate-100">
-      <aside className="w-64 bg-slate-900 text-white p-5 flex flex-col">
-        <div>
-          <h1 className="text-2xl font-bold mb-8">
-            POS ERP
-          </h1>
-
-          <nav className="space-y-3">
-            <Link
-              to="/"
-              className="flex items-center gap-2 p-3 rounded-xl hover:bg-slate-800 transition"
-            >
-              <LayoutDashboard
-                size={18}
+      <aside className="w-64 bg-slate-900 text-white flex flex-col border-r border-slate-800">
+        {/* HEADER */}
+        <div className="p-6 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-blue-500 flex items-center justify-center shadow-lg">
+              <ShieldCheck
+                size={22}
               />
-              Dashboard
-            </Link>
+            </div>
 
-            <Link
-              to="/pos"
-              className="flex items-center gap-2 p-3 rounded-xl hover:bg-slate-800 transition"
-            >
-              <ShoppingCart
-                size={18}
-              />
-              POS
-            </Link>
+            <div>
+              <h1 className="text-2xl font-bold leading-none">
+                POS ERP
+              </h1>
 
-            <Link
-              to="/sales"
-              className="flex items-center gap-2 p-3 rounded-xl hover:bg-slate-800 transition"
-            >
-              <Receipt
-                size={18}
-              />
-              Sales
-            </Link>
-
-            <Link
-              to="/inventory"
-              className="flex items-center gap-2 p-3 rounded-xl hover:bg-slate-800 transition"
-            >
-              <Package
-                size={18}
-              />
-              Inventory
-            </Link>
-
-            
-
-            <Link
-              to="/reports"
-              className="flex items-center gap-2 p-3 rounded-xl hover:bg-slate-800 transition"
-            >
-              <BarChart3
-                size={18}
-              />
-              Reports
-            </Link>
-
-            <Link
-              to="/ledger"
-              className="flex items-center gap-2 p-3 rounded-xl hover:bg-slate-800 transition"
-            >
-              <BookOpen
-                size={18}
-              />
-              Ledger
-            </Link>
-
-            <Link
-              to="/customers"
-              className="flex items-center gap-2 p-3 rounded-xl hover:bg-slate-800 transition"
-            >
-              <Users
-                size={18}
-              />
-              Customers
-            </Link>
-          </nav>
+              <p className="text-slate-400 text-sm mt-1">
+                Offline First
+              </p>
+            </div>
+          </div>
         </div>
 
-        <button
-          onClick={
-            handleLogout
-          }
-          className="mt-auto flex items-center gap-2 p-3 rounded-xl bg-red-500 hover:bg-red-600 transition"
-        >
-          <LogOut size={18} />
-          Logout
-        </button>
+        {/* NAVIGATION */}
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {navigation.map(
+            (
+              item,
+            ) => {
+              const Icon =
+                item.icon;
+
+              const active =
+                location.pathname ===
+                item.path;
+
+              return (
+                <Link
+                  key={
+                    item.path
+                  }
+                  to={
+                    item.path
+                  }
+                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${
+                    active
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'hover:bg-slate-800 text-slate-200'
+                  }`}
+                >
+                  <Icon
+                    size={18}
+                  />
+
+                  <span className="font-medium">
+                    {
+                      item.name
+                    }
+                  </span>
+                </Link>
+              );
+            },
+          )}
+        </nav>
+
+        {/* USER + LOGOUT */}
+        <div className="p-4 border-t border-slate-800">
+          <div className="mb-4 px-2">
+            <div className="font-semibold text-sm">
+              {currentUser?.name}
+            </div>
+
+            <div className="text-xs text-slate-400 mt-1">
+              {currentUser?.role}
+            </div>
+          </div>
+
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500 hover:bg-red-600 transition text-white font-medium"
+          >
+            <LogOut
+              size={18}
+            />
+
+            Logout
+          </button>
+        </div>
       </aside>
 
-     <main className="flex-1 bg-slate-100 min-h-screen">
-  <div className="flex justify-end px-6 pt-4">
-    <SyncStatus />
-  </div>
-
-  <div className="p-6">
-    {children}
-  </div>
-</main>
+      {/* MAIN */}
+      <main className="flex-1 min-h-screen overflow-auto">
+        <div className="p-6">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

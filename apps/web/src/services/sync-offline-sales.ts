@@ -4,10 +4,6 @@ import {
   db,
 } from '../utils/db';
 
-import {
-  useAuthStore,
-} from '../store/auth.store';
-
 let syncing = false;
 
 export async function syncOfflineSales() {

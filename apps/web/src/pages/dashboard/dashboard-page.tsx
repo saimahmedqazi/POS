@@ -3,7 +3,9 @@ import {
   useState,
 } from 'react';
 
-import api from '../../api/client';
+import {
+  getProducts,
+} from '../../repositories/product.repository';
 
 import AppLayout from '../../layouts/app-layout';
 
@@ -12,8 +14,6 @@ import {
   ShoppingCart,
   Package,
   TrendingUp,
-  Activity,
-  Wallet,
   RefreshCw,
 } from 'lucide-react';
 
@@ -22,6 +22,10 @@ import PageHeader from '../../components/ui/page-header';
 import Card from '../../components/ui/card';
 
 import Badge from '../../components/ui/badge';
+
+import {
+  getDashboardStats,
+} from '../../repositories/dashboard.repository';
 
 type DailySales = {
   totalRevenue: number;
@@ -82,6 +86,15 @@ const defaultInventoryValuation: InventoryValuation =
     estimatedProfit: 0,
   };
 
+const safeNumber = (
+  value: any,
+) =>
+  Number.isFinite(
+    Number(value),
+  )
+    ? Number(value)
+    : 0;
+
 export default function DashboardPage() {
   const [
     dailySales,
@@ -107,7 +120,7 @@ export default function DashboardPage() {
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] = useState(false);
 
   const [
     error,
@@ -116,71 +129,132 @@ export default function DashboardPage() {
 
   const fetchDashboard =
     async () => {
+      // PREVENT SPAM
+      if (loading) {
+        return;
+      }
+
       try {
         setLoading(true);
 
         setError('');
 
-        const results =
-          await Promise.allSettled([
-            api.get(
-              '/reports/daily-sales',
-            ),
+        // DASHBOARD STATS
+        const localStats =
+          await getDashboardStats();
 
-            api.get(
-              '/reports/profit-summary',
-            ),
-
-            api.get(
-              '/reports/inventory-valuation',
-            ),
-          ]);
-
-        const [
-          salesRes,
-          profitRes,
-          inventoryRes,
-        ] = results;
-
-        if (
-          salesRes.status ===
-          'fulfilled'
-        ) {
-          setDailySales(
-            salesRes.value.data,
-          );
-        }
-
-        if (
-          profitRes.status ===
-          'fulfilled'
-        ) {
-          setProfitSummary(
-            profitRes.value.data,
-          );
-        }
-
-        if (
-          inventoryRes.status ===
-          'fulfilled'
-        ) {
-          setInventoryValuation(
-            inventoryRes.value.data,
-          );
-        }
-
-        const failed =
-          results.some(
-            (r) =>
-              r.status ===
-              'rejected',
+        const revenue =
+          safeNumber(
+            localStats.revenue,
           );
 
-        if (failed) {
-          setError(
-            'Some dashboard data failed to load.',
+        const totalSales =
+          safeNumber(
+            localStats.totalSales,
           );
-        }
+
+        setDailySales({
+          totalRevenue:
+            revenue,
+
+          totalTransactions:
+            totalSales,
+
+          averageOrderValue:
+            totalSales > 0
+              ? revenue /
+                totalSales
+              : 0,
+        });
+
+        // PRODUCTS
+        const products =
+          await getProducts();
+
+        const totalQuantity =
+          (
+            products as any[]
+          ).reduce(
+            (
+              sum: number,
+              product: any,
+            ) =>
+              sum +
+              safeNumber(
+                product.quantity,
+              ),
+            0,
+          );
+
+        const totalCostValue =
+          (
+            products as any[]
+          ).reduce(
+            (
+              sum: number,
+              product: any,
+            ) =>
+              sum +
+              safeNumber(
+                product.cost_price,
+              ) *
+                safeNumber(
+                  product.quantity,
+                ),
+            0,
+          );
+
+        const totalSaleValue =
+          (
+            products as any[]
+          ).reduce(
+            (
+              sum: number,
+              product: any,
+            ) =>
+              sum +
+              safeNumber(
+                product.sale_price,
+              ) *
+                safeNumber(
+                  product.quantity,
+                ),
+            0,
+          );
+
+        const grossProfit =
+          totalSaleValue -
+          totalCostValue;
+
+        setProfitSummary({
+          totalRevenue:
+            revenue,
+
+          totalCost:
+            totalCostValue,
+
+          grossProfit,
+
+          profitMargin:
+            totalSaleValue > 0
+              ? (
+                  grossProfit /
+                  totalSaleValue
+                ) *
+                100
+              : 0,
+        });
+
+        setInventoryValuation({
+          totalQuantity,
+
+          totalCostValue,
+
+          totalSaleValue,
+
+          estimatedProfit:
+            grossProfit,
+        });
       } catch (
         error
       ) {
@@ -204,8 +278,8 @@ export default function DashboardPage() {
     (
       value?: number,
     ) =>
-      `Rs. ${Number(
-        value || 0,
+      `Rs. ${safeNumber(
+        value,
       ).toFixed(2)}`;
 
   if (loading) {
@@ -231,7 +305,10 @@ export default function DashboardPage() {
             onClick={
               fetchDashboard
             }
-            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl"
+            disabled={
+              loading
+            }
+            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl disabled:opacity-50"
           >
             <RefreshCw className="w-4 h-4" />
 
@@ -346,172 +423,6 @@ export default function DashboardPage() {
 
               <div className="bg-orange-100 p-4 rounded-2xl">
                 <Package className="text-orange-600" />
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <Card className="xl:col-span-2">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">
-                Financial Overview
-              </h2>
-
-              <Badge variant="neutral">
-                Live Metrics
-              </Badge>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-slate-50 rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-green-100 p-2 rounded-xl">
-                    <Wallet className="text-green-600 w-5 h-5" />
-                  </div>
-
-                  <h3 className="font-semibold">
-                    Profit Summary
-                  </h3>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Revenue
-                    </span>
-
-                    <span className="font-semibold">
-                      {formatCurrency(
-                        profitSummary.totalRevenue,
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Cost
-                    </span>
-
-                    <span className="font-semibold">
-                      {formatCurrency(
-                        profitSummary.totalCost,
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Margin
-                    </span>
-
-                    <span className="font-semibold text-green-600">
-                      {
-                        profitSummary.profitMargin
-                      }
-                      %
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-orange-100 p-2 rounded-xl">
-                    <Package className="text-orange-600 w-5 h-5" />
-                  </div>
-
-                  <h3 className="font-semibold">
-                    Inventory Value
-                  </h3>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Cost Value
-                    </span>
-
-                    <span className="font-semibold">
-                      {formatCurrency(
-                        inventoryValuation.totalCostValue,
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Sale Value
-                    </span>
-
-                    <span className="font-semibold">
-                      {formatCurrency(
-                        inventoryValuation.totalSaleValue,
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      Est. Profit
-                    </span>
-
-                    <span className="font-semibold text-purple-600">
-                      {formatCurrency(
-                        inventoryValuation.estimatedProfit,
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">
-                Performance
-              </h2>
-
-              <Activity className="text-slate-400" />
-            </div>
-
-            <div className="space-y-5">
-              <div className="bg-slate-50 rounded-2xl p-4">
-                <p className="text-sm text-slate-500">
-                  Average Order Value
-                </p>
-
-                <h3 className="text-2xl font-bold mt-2">
-                  {formatCurrency(
-                    dailySales.averageOrderValue,
-                  )}
-                </h3>
-              </div>
-
-              <div className="bg-slate-50 rounded-2xl p-4">
-                <p className="text-sm text-slate-500">
-                  Estimated Inventory Profit
-                </p>
-
-                <h3 className="text-2xl font-bold mt-2 text-green-600">
-                  {formatCurrency(
-                    inventoryValuation.estimatedProfit,
-                  )}
-                </h3>
-              </div>
-
-              <div className="bg-slate-50 rounded-2xl p-4">
-                <p className="text-sm text-slate-500">
-                  Profit Margin
-                </p>
-
-                <h3 className="text-2xl font-bold mt-2 text-purple-600">
-                  {
-                    profitSummary.profitMargin
-                  }
-                  %
-                </h3>
               </div>
             </div>
           </Card>

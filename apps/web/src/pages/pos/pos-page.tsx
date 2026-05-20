@@ -1,10 +1,18 @@
 import {
+  useMemo,
+} from 'react';
+
+import {
+  getCustomers,
+} from '../../repositories/customer.repository';
+
+import {
   useEffect,
   useRef,
   useState,
 } from 'react';
 
-import api from '../../api/client';
+
 
 import {
   useCartStore,
@@ -13,8 +21,10 @@ import {
 import AppLayout from '../../layouts/app-layout';
 
 import {
-  db,
-} from '../../utils/db';
+  getProducts,
+} from '../../repositories/product.repository';
+
+
 
 import BarcodeScannerModal from '../../components/barcode-scanner-modal';
 
@@ -30,6 +40,10 @@ import Badge from '../../components/ui/badge';
 
 import PageHeader from '../../components/ui/page-header';
 
+import {
+  createLocalSale,
+} from '../../repositories/sale.repository';
+
 type Product = {
   id: string;
 
@@ -41,11 +55,15 @@ type Product = {
 
   barcode: string;
 
-  inventory?: {
-    quantity: number;
-  }[];
+  quantity: number;
 };
 
+const safeMoney = (
+    value: number,
+  ) =>
+    Number(
+      value.toFixed(2),
+    );
 export default function PosPage() {
   const [
     products,
@@ -54,9 +72,11 @@ export default function PosPage() {
     [],
   );
 
+
+  
   const setQuantity =
     useCartStore(
-      (state) =>
+      (state: any) =>
         state.setQuantity,
     );
 
@@ -76,42 +96,42 @@ export default function PosPage() {
       null,
     );
 
+
   const items =
     useCartStore(
-      (state) =>
+      (state: any) =>
         state.items,
     );
 
   const addItem =
     useCartStore(
-      (state) =>
+      (state: any) =>
         state.addItem,
     );
 
   const clearCart =
     useCartStore(
-      (state) =>
+      (state: any) =>
         state.clearCart,
     );
 
   const increaseQuantity =
     useCartStore(
-      (state) =>
+      (state: any) =>
         state.increaseQuantity,
     );
 
   const decreaseQuantity =
     useCartStore(
-      (state) =>
+      (state: any) =>
         state.decreaseQuantity,
     );
 
   const removeItem =
     useCartStore(
-      (state) =>
+      (state: any) =>
         state.removeItem,
     );
-
   const [
     receiptOpen,
     setReceiptOpen,
@@ -154,62 +174,59 @@ export default function PosPage() {
   >('PAID');
 
   useEffect(() => {
-    const fetchProducts =
+    const loadLocalData =
       async () => {
         try {
-          const response =
-            await api.get(
-              '/products',
-            );
-
-          const fetchedProducts =
-            response.data;
+          // PRODUCTS
+          const localProducts =
+            await getProducts();
 
           setProducts(
-            fetchedProducts,
+            (
+              localProducts as any[]
+            ).map(
+              (
+                product: any,
+              ) => ({
+                id: product.id,
+
+                name:
+                  product.name,
+
+                salePrice:
+                  Number(
+                    product.sale_price ||
+                    0,
+                  ),
+
+                sku:
+                  product.sku || '',
+
+                barcode:
+                  product.barcode ||
+                  '',
+
+                quantity:
+                  Number(
+                    product.quantity ||
+                    0,
+                  ),
+              }),
+            ),
           );
 
-          await db.cachedProducts.clear();
 
-          await db.cachedProducts.bulkPut(
-            fetchedProducts,
-          );
-        } catch (
-          error: any
-        ) {
-          if (
-            error.response
-              ?.status === 401
-          ) {
-            return;
-          }
-
-          console.error(
-            'Offline mode: loading cached products',
-          );
-
-          const cachedProducts =
-            await db.cachedProducts.toArray();
-
-          setProducts(
-            cachedProducts,
-          );
-        }
-
-        try {
-          const customersResponse =
-            await api.get(
-              '/customers',
-            );
+          const localCustomers =
+            await getCustomers();
 
           setCustomers(
-            customersResponse.data,
+            localCustomers as any[],
           );
         } catch (
-          error
+        error
         ) {
           console.error(
-            'Failed to load customers',
+            'Failed loading local POS data',
             error,
           );
         } finally {
@@ -217,7 +234,7 @@ export default function PosPage() {
         }
       };
 
-    fetchProducts();
+    loadLocalData();
   }, []);
 
   useEffect(() => {
@@ -247,9 +264,7 @@ export default function PosPage() {
     }
 
     const stock =
-      exactMatch
-        .inventory?.[0]
-        ?.quantity || 0;
+      exactMatch.quantity || 0;
 
     if (stock <= 0) {
       alert(
@@ -287,39 +302,49 @@ export default function PosPage() {
   ]);
 
   const total =
-    items.reduce(
-      (
-        sum,
-        item,
-      ) =>
-        sum +
-        item.price *
-        item.quantity,
-
-      0,
+    safeMoney(
+      items.reduce(
+        (
+          sum: number,
+          item: any,
+        ) =>
+          sum +
+          safeMoney(
+            item.price *
+            item.quantity,
+          ),
+        0,
+      ),
     );
-
   const filteredProducts =
-    products.filter(
-      (product) => {
-        const query =
-          search.toLowerCase();
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
 
-        return (
-          product.name
-            .toLowerCase()
-            .includes(query) ||
+      if (!query) {
+        return products;
+      }
 
-          product.sku
-            .toLowerCase()
-            .includes(query) ||
+     return products.filter(
+  (product) =>
+    product.name
+      ?.toLowerCase()
+      .includes(query) ||
 
-          product.barcode
-            .toLowerCase()
-            .includes(query)
-        );
-      },
-    );
+    product.sku
+      ?.toLowerCase()
+      .includes(query) ||
+
+    product.barcode
+      ?.toLowerCase()
+      .includes(query),
+);
+    }, [
+      products,
+      search,
+    ]);
 
   const handleSearchEnter = (
     e: React.KeyboardEvent<HTMLInputElement>,
@@ -334,7 +359,15 @@ export default function PosPage() {
     if (!match) {
       return;
     }
+if (
+  match.quantity <= 0
+) {
+  alert(
+    'Out of stock',
+  );
 
+  return;
+}
     addItem({
       productId:
         match.id,
@@ -348,8 +381,7 @@ export default function PosPage() {
       quantity: 1,
 
       stock:
-        match.inventory?.[0]
-          ?.quantity || 0,
+        match.quantity || 0,
     });
 
     setSearch('');
@@ -360,116 +392,136 @@ export default function PosPage() {
   };
 
   const handleCheckout =
-  async () => {
-    if (
-      checkoutLoading
-    ) {
-      return;
-    }
-
-    if (
-      items.length === 0
-    ) {
-      alert(
-        'Cart is empty',
-      );
-
-      return;
-    }
-
-    try {
-      setCheckoutLoading(
-        true,
-      );
-
-      const saleId =
-        crypto.randomUUID();
-
-      const salePayload = {
-        saleId,
-
-        customerId:
-          selectedCustomerId ||
-          undefined,
-
-        items: items.map(
-          (item) => ({
-            productId:
-              item.productId,
-
-            quantity:
-              Number(
-                item.quantity,
-              ),
-
-            unitPrice:
-              Number(
-                item.price,
-              ),
-          }),
-        ),
-
-        discount: 0,
-
-        paymentStatus,
-      };
-
-      // OFFLINE MODE
+    async () => {
       if (
-        !navigator.onLine
+        checkoutLoading
       ) {
-        await db.offlineSales.add({
-          payload:
-            salePayload,
+        return;
+      }
 
-          synced: false,
-
-          serverSynced:
-            false,
-
-          createdAt:
-            new Date().toISOString(),
-        });
-
-        setReceiptItems(
-          [...items],
-        );
-
-        setReceiptTotal(
-          total,
-        );
-
-        setReceiptOpen(
-          true,
-        );
-
-        clearCart();
-
-        setSelectedCustomerId(
-          '',
-        );
-
-        setPaymentStatus(
-          'PAID',
-        );
-
+      if (
+        items.length === 0
+      ) {
         alert(
-          'Sale saved offline. Will sync automatically.',
+          'Cart is empty',
         );
 
         return;
       }
 
-      // ONLINE MODE
       try {
-        await api.post(
-          '/sales',
+        setCheckoutLoading(
+          true,
+        );
+
+        const salePayload = {
+          saleId:
+            crypto.randomUUID(),
+
+          customerId:
+            selectedCustomerId ||
+            undefined,
+
+          items: items.map(
+            (
+              item: any,
+            ) => ({
+              productId:
+                item.productId,
+
+              quantity:
+                Number(
+                  item.quantity,
+                ),
+
+              unitPrice:
+  safeMoney(
+    Number(
+      item.price,
+    ),
+  ),
+            }),
+          ),
+
+          discount: 0,
+
+          paymentStatus,
+        };
+for (const item of items) {
+  if (
+    !Number.isFinite(
+      Number(item.price),
+    )
+  ) {
+    alert(
+      `Invalid product price: ${item.name}`,
+    );
+
+    return;
+  }
+
+  if (
+    !Number.isFinite(
+      Number(item.quantity),
+    ) ||
+    Number(item.quantity) <= 0
+  ) {
+    alert(
+      `Invalid quantity: ${item.name}`,
+    );
+
+    return;
+  }
+}
+        // SAVE LOCALLY
+        await createLocalSale(
           salePayload,
         );
 
-        setReceiptItems(
-          [...items],
+        // UPDATE UI STOCK
+        setProducts((prev) =>
+          prev.map(
+            (
+              product: any,
+            ) => {
+              const soldItem =
+                salePayload.items.find(
+                  (
+                    item: any,
+                  ) =>
+                    item.productId ===
+                    product.id,
+                );
+
+              if (
+                !soldItem
+              ) {
+                return product;
+              }
+
+              return {
+                ...product,
+
+                quantity:
+                  Math.max(
+                    Number(
+                      product.quantity ||
+                      0,
+                    ) -
+                    Number(
+                      soldItem.quantity,
+                    ),
+                    0,
+                  ),
+              };
+            },
+          ),
         );
+
+        // RECEIPT
+        setReceiptItems([
+          ...items,
+        ]);
 
         setReceiptTotal(
           total,
@@ -479,6 +531,7 @@ export default function PosPage() {
           true,
         );
 
+        // RESET
         clearCart();
 
         setSelectedCustomerId(
@@ -488,46 +541,33 @@ export default function PosPage() {
         setPaymentStatus(
           'PAID',
         );
+
+        setSearch('');
+
+        alert(
+          'Sale completed successfully.',
+        );
       } catch (
-        error: any
+      error
       ) {
         console.error(
           error,
         );
 
-        // FALLBACK TO OFFLINE SAVE
-        await db.offlineSales.add({
-          payload:
-            salePayload,
-
-          synced: false,
-
-          serverSynced:
-            false,
-
-          createdAt:
-            new Date().toISOString(),
-        });
-
-        clearCart();
-
         alert(
-          'Internet/server issue. Sale saved offline and will sync automatically.',
+          'Failed to complete sale.',
         );
+      } finally {
+        setCheckoutLoading(
+          false,
+        );
+
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 0);
       }
-    } finally {
-      setCheckoutLoading(
-        false,
-      );
-
-      setSearch('');
-
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 0);
-    }
-  };
-
+    };
+  
   const handleBarcodeScan =
     (
       barcode: string,
@@ -554,9 +594,7 @@ export default function PosPage() {
       }
 
       const stock =
-        match.inventory?.[0]
-          ?.quantity || 0;
-
+        match.quantity || 0;
       if (stock <= 0) {
         alert(
           'Out of stock',
@@ -637,7 +675,12 @@ export default function PosPage() {
                   }
                 />
               </div>
-
+{filteredProducts.length ===
+  0 && (
+  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
+    No products found
+  </div>
+)}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredProducts.map(
                   (
@@ -672,23 +715,29 @@ export default function PosPage() {
                           </p>
                         </div>
 
-                        <Badge
-                          variant={
-                            (product
-                              .inventory?.[0]
-                              ?.quantity ||
-                              0) > 0
-                              ? 'success'
-                              : 'danger'
-                          }
-                        >
-                          {(product
-                            .inventory?.[0]
-                            ?.quantity ||
-                            0) > 0
-                            ? 'In Stock'
-                            : 'Out of Stock'}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge
+                            variant={
+                              product.quantity > 0
+                                ? product.quantity <= 5
+                                  ? 'warning'
+                                  : 'success'
+                                : 'danger'
+                            }
+                          >
+                            {product.quantity > 0
+                              ? product.quantity <= 5
+                                ? 'Low Stock'
+                                : 'In Stock'
+                              : 'Out of Stock'}
+                          </Badge>
+
+                          <div className="text-sm font-semibold text-slate-600">
+                            Qty:
+                            {' '}
+                            {product.quantity}
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex items-center justify-between mt-6">
@@ -702,9 +751,7 @@ export default function PosPage() {
                         <Button
                           onClick={() => {
                             const stock =
-                              product
-                                .inventory?.[0]
-                                ?.quantity || 0;
+                              product.quantity || 0;
 
                             if (
                               stock <= 0
@@ -758,7 +805,7 @@ export default function PosPage() {
                   <div className="space-y-4">
                     {items.map(
                       (
-                        item,
+                        item: any,
                       ) => (
                         <div
                           key={
@@ -813,17 +860,49 @@ export default function PosPage() {
                                 item.quantity
                               }
                               onChange={(e) => {
+                                const raw =
+                                  e.target.value;
+
                                 const value =
-                                  Number(
-                                    e.target.value,
+                                  Number(raw);
+
+                                // INVALID
+                                if (
+                                  !Number.isFinite(
+                                    value,
+                                  )
+                                ) {
+                                  return;
+                                }
+
+                                // NO DECIMALS
+                                const sanitized =
+                                  Math.floor(value);
+
+                                // MINIMUM 1
+                                if (
+                                  sanitized < 1
+                                ) {
+                                  setQuantity(
+                                    item.productId,
+                                    1,
                                   );
 
+                                  return;
+                                }
+
+                                // STOCK LIMIT
                                 if (
-                                  value >
+                                  sanitized >
                                   item.stock
                                 ) {
                                   alert(
                                     `Only ${item.stock} items available`,
+                                  );
+
+                                  setQuantity(
+                                    item.productId,
+                                    item.stock,
                                   );
 
                                   return;
@@ -831,7 +910,7 @@ export default function PosPage() {
 
                                 setQuantity(
                                   item.productId,
-                                  value,
+                                  sanitized,
                                 );
                               }}
                               className="w-16 text-center"
@@ -1023,7 +1102,9 @@ export default function PosPage() {
             false,
           )
         }
+        
         onScan={
+          
           handleBarcodeScan
         }
       />

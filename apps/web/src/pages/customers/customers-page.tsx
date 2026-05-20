@@ -3,8 +3,6 @@ import {
   useState,
 } from 'react';
 
-import api from '../../api/client';
-
 import AppLayout from '../../layouts/app-layout';
 
 import Card from '../../components/ui/card';
@@ -25,6 +23,14 @@ import {
   TableCell,
 } from '../../components/ui/table';
 
+import {
+  getCustomers,
+  createLocalCustomer,
+  updateLocalCustomer,
+  deleteLocalCustomer,
+  receiveCustomerPayment,
+} from '../../repositories/customer.repository';
+
 type Customer = {
   id: string;
 
@@ -32,7 +38,7 @@ type Customer = {
 
   phone?: string;
 
-  balance: number;
+  current_balance: number;
 };
 
 export default function CustomersPage() {
@@ -63,22 +69,74 @@ export default function CustomersPage() {
     setCustomerPhone,
   ] = useState('');
 
+  const [
+    editingCustomer,
+    setEditingCustomer,
+  ] = useState<Customer | null>(
+    null,
+  );
+
+  const [
+    paymentModalOpen,
+    setPaymentModalOpen,
+  ] = useState(false);
+
+  const [
+    selectedCustomer,
+    setSelectedCustomer,
+  ] = useState<Customer | null>(
+    null,
+  );
+
+  const [
+    paymentAmount,
+    setPaymentAmount,
+  ] = useState('');
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
   const fetchCustomers =
     async () => {
       try {
-        const response =
-          await api.get(
-            '/customers',
-          );
+        const localCustomers =
+          await getCustomers();
 
         setCustomers(
-          response.data,
+          (
+            localCustomers as any[]
+          ).map(
+            (
+              customer: any,
+            ) => ({
+              id: customer.id,
+
+              name:
+                customer.name,
+
+              phone:
+                customer.phone,
+
+              current_balance:
+                Number(
+                  customer.current_balance ||
+                    0,
+                ),
+            }),
+          ),
         );
       } catch (
         error
       ) {
         console.error(
+          'Failed loading customers',
           error,
+        );
+
+        alert(
+          'Failed loading customers',
         );
       } finally {
         setLoading(false);
@@ -89,30 +147,81 @@ export default function CustomersPage() {
     fetchCustomers();
   }, []);
 
+  const resetForm =
+    () => {
+      setCustomerName('');
+
+      setCustomerPhone('');
+
+      setEditingCustomer(
+        null,
+      );
+    };
+
   const handleCreateCustomer =
     async () => {
+      const name =
+        customerName.trim();
+
+      const phone =
+        customerPhone.trim();
+
+      if (!name) {
+        alert(
+          'Customer name is required',
+        );
+
+        return;
+      }
+
+      if (
+        name.length < 2
+      ) {
+        alert(
+          'Customer name too short',
+        );
+
+        return;
+      }
+
+      if (
+        phone &&
+        !/^[0-9+\-\s]+$/.test(
+          phone,
+        )
+      ) {
+        alert(
+          'Invalid phone number',
+        );
+
+        return;
+      }
+
       try {
-        await api.post(
-          '/customers',
-          {
-            name: customerName,
+        setSaving(true);
 
-            phone:
-              customerPhone,
+        if (
+          editingCustomer
+        ) {
+          await updateLocalCustomer(
+            editingCustomer.id,
+            {
+              name,
 
-            type: 'VENDOR',
+              phone,
+            },
+          );
+        } else {
+          await createLocalCustomer(
+            {
+              name,
 
-            creditLimit: 0,
-          },
-        );
+              phone,
+            },
+          );
+        }
 
-        setCustomerName(
-          '',
-        );
-
-        setCustomerPhone(
-          '',
-        );
+        resetForm();
 
         setCreateModalOpen(
           false,
@@ -127,27 +236,53 @@ export default function CustomersPage() {
         );
 
         alert(
-          'Failed to create customer',
+          'Failed saving customer',
         );
+      } finally {
+        setSaving(false);
       }
     };
 
-  const [
-    paymentModalOpen,
-    setPaymentModalOpen,
-  ] = useState(false);
+  const handleDeleteCustomer =
+    async (
+      customer: Customer,
+    ) => {
+      const confirmed =
+        window.confirm(
+          `Delete customer?\n\n` +
+            `Name: ${customer.name}\n` +
+            `Phone: ${
+              customer.phone ||
+              '-'
+            }\n` +
+            `Balance: Rs. ${Number(
+              customer.current_balance ||
+                0,
+            ).toFixed(2)}`,
+        );
 
-  const [
-    selectedCustomer,
-    setSelectedCustomer,
-  ] = useState<any>(
-    null,
-  );
+      if (!confirmed) {
+        return;
+      }
 
-  const [
-    paymentAmount,
-    setPaymentAmount,
-  ] = useState('');
+      try {
+        await deleteLocalCustomer(
+          customer.id,
+        );
+
+        fetchCustomers();
+      } catch (
+        error
+      ) {
+        console.error(
+          error,
+        );
+
+        alert(
+          'Failed deleting customer',
+        );
+      }
+    };
 
   const handleReceivePayment =
     async () => {
@@ -157,45 +292,43 @@ export default function CustomersPage() {
         return;
       }
 
+      const amount =
+        Number(
+          paymentAmount,
+        );
+
+      if (
+        !Number.isFinite(
+          amount,
+        ) ||
+        amount <= 0
+      ) {
+        alert(
+          'Invalid payment amount',
+        );
+
+        return;
+      }
+
       try {
-        await api.post(
-          '/ledger',
-          {
-            customerId:
-              selectedCustomer.id,
+        setSaving(true);
 
-            type: 'CREDIT',
-
-            amount:
-              Number(
-                paymentAmount,
-              ),
-
-            referenceType:
-              'PAYMENT',
-          },
+        await receiveCustomerPayment(
+          selectedCustomer.id,
+          amount,
         );
 
         setPaymentModalOpen(
           false,
         );
 
-        setPaymentAmount(
-          '',
-        );
+        setPaymentAmount('');
 
         setSelectedCustomer(
           null,
         );
 
-        const response =
-          await api.get(
-            '/customers',
-          );
-
-        setCustomers(
-          response.data,
-        );
+        fetchCustomers();
       } catch (
         error
       ) {
@@ -204,8 +337,10 @@ export default function CustomersPage() {
         );
 
         alert(
-          'Failed to receive payment',
+          'Failed receiving payment',
         );
+      } finally {
+        setSaving(false);
       }
     };
 
@@ -221,19 +356,21 @@ export default function CustomersPage() {
 
   return (
     <AppLayout>
-      <div>
-        <div className="flex items-center justify-between mb-8">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
           <PageHeader
             title="Customers"
             subtitle="Customer accounts and balances"
           />
 
           <Button
-            onClick={() =>
+            onClick={() => {
+              resetForm();
+
               setCreateModalOpen(
                 true,
-              )
-            }
+              );
+            }}
           >
             Add Customer
           </Button>
@@ -285,37 +422,98 @@ export default function CustomersPage() {
                     </TableCell>
 
                     <TableCell>
-                      <span
-                        className={`font-semibold ${
-                          customer.balance >
+                      <div
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold ${
+                          customer.current_balance >
                           0
-                            ? 'text-red-600'
-                            : 'text-green-600'
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-green-50 text-green-700'
                         }`}
                       >
-                        Rs.{' '}
-                        {
-                          customer.balance
-                        }
-                      </span>
+                        <span className="text-base">
+                          {customer.current_balance >
+                          0
+                            ? '↑'
+                            : '✓'}
+                        </span>
+
+                        <span>
+                          Rs.{' '}
+                          {Number(
+                            customer.current_balance ||
+                              0,
+                          ).toFixed(
+                            2,
+                          )}
+                        </span>
+                      </div>
                     </TableCell>
 
                     <TableCell>
-                      <Button
-                        variant="success"
-                        className="px-3 py-2"
-                        onClick={() => {
-                          setSelectedCustomer(
-                            customer,
-                          );
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          className="px-3 py-2"
+                          onClick={() => {
+                            setEditingCustomer(
+                              customer,
+                            );
 
-                          setPaymentModalOpen(
-                            true,
-                          );
-                        }}
-                      >
-                        Receive Payment
-                      </Button>
+                            setCustomerName(
+                              customer.name,
+                            );
+
+                            setCustomerPhone(
+                              customer.phone ||
+                                '',
+                            );
+
+                            setCreateModalOpen(
+                              true,
+                            );
+                          }}
+                        >
+                          Edit
+                        </Button>
+
+                        <Button
+                          variant="danger"
+                          className="px-3 py-2"
+                          onClick={() =>
+                            handleDeleteCustomer(
+                              customer,
+                            )
+                          }
+                        >
+                          Delete
+                        </Button>
+
+                        <Button
+                          variant="success"
+                          className="px-3 py-2"
+                          disabled={
+                            Number(
+                              customer.current_balance ||
+                                0,
+                            ) <= 0
+                          }
+                          onClick={() => {
+                            setSelectedCustomer(
+                              customer,
+                            );
+
+                            setPaymentAmount(
+                              '',
+                            );
+
+                            setPaymentModalOpen(
+                              true,
+                            );
+                          }}
+                        >
+                          Payment
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ),
@@ -340,7 +538,11 @@ export default function CustomersPage() {
           open={
             createModalOpen
           }
-          title="Add Customer"
+          title={
+            editingCustomer
+              ? 'Edit Customer'
+              : 'Add Customer'
+          }
           onClose={() =>
             setCreateModalOpen(
               false,
@@ -392,11 +594,14 @@ export default function CustomersPage() {
 
             <Button
               className="flex-1"
+              disabled={saving}
               onClick={
                 handleCreateCustomer
               }
             >
-              Create
+              {editingCustomer
+                ? 'Update'
+                : 'Create'}
             </Button>
           </div>
         </Modal>
@@ -422,15 +627,25 @@ export default function CustomersPage() {
             </span>
           </p>
 
-          <p className="text-slate-600 mb-6">
-            Current Balance:{' '}
-            <span className="font-bold text-red-600">
-              Rs.{' '}
-              {
-                selectedCustomer?.balance
-              }
-            </span>
-          </p>
+          <div className="mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-50 text-red-700 font-semibold">
+              <span>
+                ↑
+              </span>
+
+              <span>
+                Outstanding:
+                {' '}
+                Rs.{' '}
+                {Number(
+                  selectedCustomer?.current_balance ||
+                    0,
+                ).toFixed(
+                  2,
+                )}
+              </span>
+            </div>
+          </div>
 
           <Input
             type="number"
@@ -460,11 +675,12 @@ export default function CustomersPage() {
 
             <Button
               className="flex-1"
+              disabled={saving}
               onClick={
                 handleReceivePayment
               }
             >
-              Confirm
+              Confirm Payment
             </Button>
           </div>
         </Modal>

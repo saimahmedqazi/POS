@@ -3,7 +3,6 @@ import {
   useState,
 } from 'react';
 
-import api from '../../api/client';
 
 import AppLayout from '../../layouts/app-layout';
 
@@ -25,32 +24,38 @@ import {
   TableCell,
 } from '../../components/ui/table';
 
+import {
+  getLocalSales,
+} from '../../repositories/sale.repository';
+
 type SaleItem = {
   id: string;
 
   quantity: number;
 
-  unitPrice: number;
+  unit_price: number;
 
   subtotal: number;
 
-  product: {
+  product?: {
     name: string;
   };
+
+  product_name?: string;
 };
 
 type Sale = {
   id: string;
 
-  totalAmount: number;
+  total_amount: number;
 
   discount: number;
 
-  finalAmount: number;
+  final_amount: number;
 
-  paymentStatus: string;
+  payment_status: string;
 
-  createdAt: string;
+  created_at: string;
 
   customer?: {
     name: string;
@@ -79,31 +84,30 @@ export default function SalesPage() {
     null,
   );
 
-  useEffect(() => {
-    const fetchSales =
-      async () => {
-        try {
-          const response =
-            await api.get(
-              '/sales',
-            );
+ useEffect(() => {
+  const loadLocalSales =
+    async () => {
+      try {
+        const localSales =
+          await getLocalSales();
 
-          setSales(
-            response.data,
-          );
-        } catch (
-          error
-        ) {
-          console.error(
-            error,
-          );
-        } finally {
-          setLoading(false);
-        }
-      };
+        setSales(
+          localSales as Sale[],
+        );
+      } catch (
+        error
+      ) {
+        console.error(
+          'Failed loading local sales',
+          error,
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    fetchSales();
-  }, []);
+  loadLocalSales();
+}, []);
 
   if (loading) {
     return (
@@ -179,7 +183,7 @@ export default function SalesPage() {
 
                     <TableCell>
                       {new Date(
-                        sale.createdAt,
+                        sale.created_at,
                       ).toLocaleString()}
                     </TableCell>
 
@@ -192,14 +196,14 @@ export default function SalesPage() {
                     <TableCell>
                       <Badge
                         variant={
-                          sale.paymentStatus ===
+                          sale.payment_status ===
                           'CREDIT'
                             ? 'danger'
                             : 'success'
                         }
                       >
                         {
-                          sale.paymentStatus
+                          sale.payment_status
                         }
                       </Badge>
                     </TableCell>
@@ -214,9 +218,9 @@ export default function SalesPage() {
                     <TableCell>
                       <span className="font-semibold">
                         Rs.{' '}
-                        {
-                          Number(sale.finalAmount)
-                        }
+                        {Number(
+                          sale.final_amount,
+                        )}
                       </span>
                     </TableCell>
 
@@ -269,7 +273,7 @@ export default function SalesPage() {
             <>
               <p className="text-slate-500 mb-6">
                 {new Date(
-                  selectedSale.createdAt,
+                  selectedSale.created_at,
                 ).toLocaleString()}
               </p>
 
@@ -289,7 +293,7 @@ export default function SalesPage() {
                     Payment:
                   </span>{' '}
                   {
-                    selectedSale.paymentStatus
+                    selectedSale.payment_status
                   }
                 </p>
               </div>
@@ -327,11 +331,11 @@ export default function SalesPage() {
                           }
                         >
                           <TableCell>
-                            {
-                              item
-                                .product
-                                .name
-                            }
+                            {item
+                              .product
+                              ?.name ||
+                              item.product_name ||
+                              'Product'}
                           </TableCell>
 
                           <TableCell>
@@ -343,7 +347,7 @@ export default function SalesPage() {
                           <TableCell>
                             Rs.{' '}
                             {
-                              item.unitPrice
+                              item.unit_price
                             }
                           </TableCell>
 
@@ -371,7 +375,7 @@ export default function SalesPage() {
                   <span>
                     Rs.{' '}
                     {
-                      selectedSale.totalAmount
+                      selectedSale.total_amount
                     }
                   </span>
                 </div>
@@ -396,9 +400,9 @@ export default function SalesPage() {
 
                   <span>
                     Rs.{' '}
-                    {
-                     Number(selectedSale.finalAmount)
-                    }
+                    {Number(
+                      selectedSale.final_amount,
+                    )}
                   </span>
                 </div>
               </div>

@@ -1,18 +1,10 @@
 import {
-  BrowserRouter,
   Routes,
   Route,
+  Navigate,
 } from 'react-router-dom';
 
-import {
-  useEffect,
-} from 'react';
-
-import LoginPage from './pages/auth/login-page';
-
 import DashboardPage from './pages/dashboard/dashboard-page';
-
-import ProtectedRoute from './routes/protected-route';
 
 import PosPage from './pages/pos/pos-page';
 
@@ -26,109 +18,103 @@ import LedgerPage from './pages/ledger/ledger-page';
 
 import SalesPage from './pages/sales/sales-page';
 
-import {
-  syncOfflineSales,
-} from './services/sync-offline-sales';
+import LocalLoginPage from './pages/auth/local-login-page';
+
+import SettingsPage from './pages/settings/settings-page';
+
+import ProtectedRoute from './components/auth/protected-route';
 
 export default function App() {
-  useEffect(() => {
-    if (
-      navigator.onLine
-    ) {
-      syncOfflineSales();
-    }
-
-    const handleOnline =
-      () => {
-        syncOfflineSales();
-      };
-
-    window.addEventListener(
-      'online',
-      handleOnline,
-    );
-
-    return () => {
-      window.removeEventListener(
-        'online',
-        handleOnline,
-      );
-    };
-  }, []);
-
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/login"
-          element={
-            <LoginPage />
-          }
-        />
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <LocalLoginPage />
+        }
+      />
 
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
 
-        <Route
-          path="/pos"
-          element={
-            <ProtectedRoute>
-              <PosPage />
-            </ProtectedRoute>
-          }
-        />
+      <Route
+        path="/pos"
+        element={
+          <ProtectedRoute>
+            <PosPage />
+          </ProtectedRoute>
+        }
+      />
 
-        <Route
-          path="/sales"
-          element={
-            <ProtectedRoute>
-              <SalesPage />
-            </ProtectedRoute>
-          }
-        />
+      <Route
+        path="/sales"
+        element={
+          <ProtectedRoute>
+            <SalesPage />
+          </ProtectedRoute>
+        }
+      />
 
-        <Route
-          path="/inventory"
-          element={
-            <ProtectedRoute>
-              <InventoryPage />
-            </ProtectedRoute>
-          }
-        />
+      <Route
+        path="/inventory"
+        element={
+          <ProtectedRoute>
+            <InventoryPage />
+          </ProtectedRoute>
+        }
+      />
 
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRoute>
-              <ReportsPage />
-            </ProtectedRoute>
-          }
-        />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute>
+            <ReportsPage />
+          </ProtectedRoute>
+        }
+      />
 
-        <Route
-          path="/customers"
-          element={
-            <ProtectedRoute>
-              <CustomersPage />
-            </ProtectedRoute>
-          }
-        />
+      <Route
+        path="/customers"
+        element={
+          <ProtectedRoute>
+            <CustomersPage />
+          </ProtectedRoute>
+        }
+      />
 
-        <Route
-          path="/ledger"
-          element={
-            <ProtectedRoute>
-              <LedgerPage />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+      <Route
+        path="/ledger"
+        element={
+          <ProtectedRoute>
+            <LedgerPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="/"
+            replace
+          />
+        }
+      />
+    </Routes>
   );
 }

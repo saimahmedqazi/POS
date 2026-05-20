@@ -3,15 +3,17 @@ import {
   useState,
 } from 'react';
 
-import api from '../../api/client';
+import {
+  getDatabase,
+} from '../../lib/database';
 
 import AppLayout from '../../layouts/app-layout';
 
 import Card from '../../components/ui/card';
 
-import Badge from '../../components/ui/badge';
-
 import PageHeader from '../../components/ui/page-header';
+
+import Button from '../../components/ui/button';
 
 import {
   Table,
@@ -50,30 +52,80 @@ export default function LedgerPage() {
   const [loading, setLoading] =
     useState(true);
 
+  const loadLedger =
+    async () => {
+      try {
+        const db =
+          getDatabase();
+
+        const rows =
+          await db.select(
+            `
+            SELECT
+              ledger_entries.*,
+              customers.name as customer_name
+            FROM ledger_entries
+            LEFT JOIN customers
+              ON ledger_entries.customer_id =
+                 customers.id
+            ORDER BY ledger_entries.created_at DESC
+            `,
+          );
+
+        const normalized =
+          (
+            rows as any[]
+          ).map(
+            (
+              entry: any,
+            ) => ({
+              id: entry.id,
+
+              type:
+                entry.type,
+
+              amount:
+                Number(
+                  entry.amount ||
+                    0,
+                ),
+
+              createdAt:
+                entry.created_at,
+
+              referenceType:
+                entry.reference_type,
+
+              referenceId:
+                entry.reference_id,
+
+              customer:
+                entry.customer_name
+                  ? {
+                      name:
+                        entry.customer_name,
+                    }
+                  : undefined,
+            }),
+          );
+
+        setEntries(
+          normalized,
+        );
+      } catch (
+        error
+      ) {
+        console.error(
+          'Failed loading ledger',
+          error,
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
   useEffect(() => {
-    const fetchLedger =
-      async () => {
-        try {
-          const response =
-            await api.get(
-              '/ledger',
-            );
-
-          setEntries(
-            response.data,
-          );
-        } catch (
-          error
-        ) {
-          console.error(
-            error,
-          );
-        } finally {
-          setLoading(false);
-        }
-      };
-
-    fetchLedger();
+    loadLedger();
   }, []);
 
   if (loading) {
@@ -88,11 +140,21 @@ export default function LedgerPage() {
 
   return (
     <AppLayout>
-      <div>
-        <PageHeader
-          title="Ledger"
-          subtitle="Financial transaction history"
-        />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <PageHeader
+            title="Ledger"
+            subtitle="Financial transaction history"
+          />
+
+          <Button
+            onClick={
+              loadLedger
+            }
+          >
+            Refresh
+          </Button>
+        </div>
 
         <Card className="p-0 overflow-hidden">
           <Table>
@@ -131,52 +193,80 @@ export default function LedgerPage() {
                     }
                   >
                     <TableCell>
-                      {new Date(
-                        entry.createdAt,
-                      ).toLocaleDateString()}
+                      {entry.createdAt
+                        ? new Date(
+                            entry.createdAt,
+                          ).toLocaleDateString()
+                        : '-'}
                     </TableCell>
 
                     <TableCell>
-                      {entry
-                        .customer
-                        ?.name ||
-                        '-'}
+                      <span className="font-medium">
+                        {entry
+                          .customer
+                          ?.name ||
+                          '-'}
+                      </span>
                     </TableCell>
 
                     <TableCell>
-                      <Badge
-                        variant={
+                      <div
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${
                           entry.type ===
                           'DEBIT'
-                            ? 'danger'
-                            : 'success'
-                        }
-                      >
-                        {
-                          entry.type
-                        }
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell>
-                      {entry.referenceType ||
-                        '-'}
-                    </TableCell>
-
-                    <TableCell>
-                      <span
-                        className={`font-semibold ${
-                          entry.type ===
-                          'DEBIT'
-                            ? 'text-red-600'
-                            : 'text-green-600'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-green-100 text-green-700'
                         }`}
                       >
-                        Rs.{' '}
-                        {
-                          entry.amount
-                        }
+                        {entry.type ===
+                        'DEBIT'
+                          ? 'Credit Sale'
+                          : 'Payment'}
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <span className="text-slate-600 font-medium">
+                        {entry.referenceType ===
+                        'SALE'
+                          ? 'Sale'
+                          : entry.referenceType ===
+                            'PAYMENT'
+                          ? 'Payment'
+                          : '-'}
                       </span>
+                    </TableCell>
+
+                    <TableCell>
+                      <div
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold ${
+                          entry.type ===
+                          'DEBIT'
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-green-50 text-green-700'
+                        }`}
+                      >
+                        <span className="text-base">
+                          {entry.type ===
+                          'DEBIT'
+                            ? '↑'
+                            : '↓'}
+                        </span>
+
+                        <span>
+                          {entry.type ===
+                          'DEBIT'
+                            ? '-'
+                            : '+'}
+                          Rs.{' '}
+                          {Number(
+                            entry.amount ||
+                              0,
+                          ).toFixed(
+                            2,
+                          )}
+                        </span>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ),
