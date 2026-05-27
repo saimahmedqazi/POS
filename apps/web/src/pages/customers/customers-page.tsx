@@ -29,7 +29,17 @@ import {
   updateLocalCustomer,
   deleteLocalCustomer,
   receiveCustomerPayment,
+  enableCustomerMobileAccess,
 } from '../../repositories/customer.repository';
+
+import {
+  createRetailerAccount,
+} from '../../services/retailer.service';
+
+import {
+  getRetailersMap,
+  setRetailerDisabledState,
+} from '../../services/retailer-management.service';
 
 type Customer = {
   id: string;
@@ -39,6 +49,12 @@ type Customer = {
   phone?: string;
 
   current_balance: number;
+
+  mobile_enabled?: number;
+
+  mobile_sync_id?: string;
+
+  retailer_disabled?: boolean;
 };
 
 export default function CustomersPage() {
@@ -55,9 +71,43 @@ export default function CustomersPage() {
   ] = useState(true);
 
   const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const [
     createModalOpen,
     setCreateModalOpen,
   ] = useState(false);
+
+  const [
+    paymentModalOpen,
+    setPaymentModalOpen,
+  ] = useState(false);
+
+  const [
+    deleteModalOpen,
+    setDeleteModalOpen,
+  ] = useState(false);
+
+  const [
+    credentialsModalOpen,
+    setCredentialsModalOpen,
+  ] = useState(false);
+
+  const [
+    selectedCustomer,
+    setSelectedCustomer,
+  ] = useState<Customer | null>(
+    null,
+  );
+
+  const [
+    editingCustomer,
+    setEditingCustomer,
+  ] = useState<Customer | null>(
+    null,
+  );
 
   const [
     customerName,
@@ -70,47 +120,67 @@ export default function CustomersPage() {
   ] = useState('');
 
   const [
-    editingCustomer,
-    setEditingCustomer,
-  ] = useState<Customer | null>(
-    null,
-  );
-
-  const [
-    paymentModalOpen,
-    setPaymentModalOpen,
-  ] = useState(false);
-
-  const [
-    selectedCustomer,
-    setSelectedCustomer,
-  ] = useState<Customer | null>(
-    null,
-  );
-
-  const [
     paymentAmount,
     setPaymentAmount,
   ] = useState('');
 
   const [
-    saving,
-    setSaving,
+    mobileEnabled,
+    setMobileEnabled,
   ] = useState(false);
 
-  const fetchCustomers =
-    async () => {
-      try {
-        const localCustomers =
-          await getCustomers();
+  const [
+    retailerPassword,
+    setRetailerPassword,
+  ] = useState('');
 
-        setCustomers(
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] = useState('');
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState('');
+
+  const [
+    createdRetailerCredentials,
+    setCreatedRetailerCredentials,
+  ] = useState<{
+    phone: string;
+
+    password: string;
+  } | null>(null);
+
+ const fetchCustomers =
+  async () => {
+    try {
+      const [
+        localCustomers,
+        retailersMap,
+      ] =
+        await Promise.all(
+          [
+            getCustomers(),
+
+            getRetailersMap(),
+          ],
+        );
+
+      setCustomers(
+        (
+          localCustomers as any[]
+        ).map(
           (
-            localCustomers as any[]
-          ).map(
-            (
-              customer: any,
-            ) => ({
+            customer: any,
+          ) => {
+            const retailer =
+              retailersMap.get(
+                customer.id,
+              );
+
+            return {
               id: customer.id,
 
               name:
@@ -124,24 +194,37 @@ export default function CustomersPage() {
                   customer.current_balance ||
                     0,
                 ),
-            }),
-          ),
-        );
-      } catch (
-        error
-      ) {
-        console.error(
-          'Failed loading customers',
-          error,
-        );
 
-        alert(
-          'Failed loading customers',
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+              mobile_enabled:
+                Number(
+                  customer.mobile_enabled ||
+                    0,
+                ),
+
+              mobile_sync_id:
+                customer.mobile_sync_id,
+
+              retailer_disabled:
+                retailer?.disabled ||
+                false,
+            };
+          },
+        ),
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error,
+      );
+
+      setErrorMessage(
+        'Failed loading customers',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchCustomers();
@@ -152,6 +235,14 @@ export default function CustomersPage() {
       setCustomerName('');
 
       setCustomerPhone('');
+
+      setRetailerPassword(
+        '',
+      );
+
+      setMobileEnabled(
+        false,
+      );
 
       setEditingCustomer(
         null,
@@ -166,8 +257,16 @@ export default function CustomersPage() {
       const phone =
         customerPhone.trim();
 
+      setErrorMessage(
+        '',
+      );
+
+      setSuccessMessage(
+        '',
+      );
+
       if (!name) {
-        alert(
+        setErrorMessage(
           'Customer name is required',
         );
 
@@ -177,7 +276,7 @@ export default function CustomersPage() {
       if (
         name.length < 2
       ) {
-        alert(
+        setErrorMessage(
           'Customer name too short',
         );
 
@@ -190,11 +289,34 @@ export default function CustomersPage() {
           phone,
         )
       ) {
-        alert(
+        setErrorMessage(
           'Invalid phone number',
         );
 
         return;
+      }
+
+      if (
+        mobileEnabled
+      ) {
+        if (!phone) {
+          setErrorMessage(
+            'Phone number required for retailer access',
+          );
+
+          return;
+        }
+
+        if (
+          retailerPassword.length <
+          6
+        ) {
+          setErrorMessage(
+            'Retailer password must be at least 6 characters',
+          );
+
+          return;
+        }
       }
 
       try {
@@ -211,13 +333,61 @@ export default function CustomersPage() {
               phone,
             },
           );
-        } else {
-          await createLocalCustomer(
-            {
-              name,
 
-              phone,
-            },
+          setSuccessMessage(
+            'Customer updated successfully',
+          );
+        } else {
+          const createdCustomer =
+            await createLocalCustomer(
+              {
+                name,
+
+                phone,
+              },
+            );
+
+          if (
+            mobileEnabled
+          ) {
+            const retailer =
+              await createRetailerAccount(
+                {
+                  customerLocalId:
+                    createdCustomer.id,
+
+                  businessName:
+                    name,
+
+                  phone,
+
+                  password:
+                    retailerPassword,
+                },
+              );
+
+            await enableCustomerMobileAccess(
+              createdCustomer.id,
+              retailer.retailerId,
+            );
+
+            setCreatedRetailerCredentials(
+              {
+                phone:
+                  retailer.normalizedPhone,
+
+                password:
+                  retailerPassword,
+              },
+            );
+
+            setCredentialsModalOpen(
+              true,
+            );
+          }
+
+          setSuccessMessage(
+            'Customer created successfully',
           );
         }
 
@@ -229,14 +399,15 @@ export default function CustomersPage() {
 
         fetchCustomers();
       } catch (
-        error
+        error: any
       ) {
         console.error(
           error,
         );
 
-        alert(
-          'Failed saving customer',
+        setErrorMessage(
+          error?.message ||
+            'Failed saving customer',
         );
       } finally {
         setSaving(false);
@@ -244,30 +415,30 @@ export default function CustomersPage() {
     };
 
   const handleDeleteCustomer =
-    async (
-      customer: Customer,
-    ) => {
-      const confirmed =
-        window.confirm(
-          `Delete customer?\n\n` +
-            `Name: ${customer.name}\n` +
-            `Phone: ${
-              customer.phone ||
-              '-'
-            }\n` +
-            `Balance: Rs. ${Number(
-              customer.current_balance ||
-                0,
-            ).toFixed(2)}`,
-        );
-
-      if (!confirmed) {
+    async () => {
+      if (
+        !selectedCustomer
+      ) {
         return;
       }
 
       try {
+        setSaving(true);
+
         await deleteLocalCustomer(
-          customer.id,
+          selectedCustomer.id,
+        );
+
+        setDeleteModalOpen(
+          false,
+        );
+
+        setSelectedCustomer(
+          null,
+        );
+
+        setSuccessMessage(
+          'Customer deleted successfully',
         );
 
         fetchCustomers();
@@ -278,9 +449,11 @@ export default function CustomersPage() {
           error,
         );
 
-        alert(
+        setErrorMessage(
           'Failed deleting customer',
         );
+      } finally {
+        setSaving(false);
       }
     };
 
@@ -303,7 +476,7 @@ export default function CustomersPage() {
         ) ||
         amount <= 0
       ) {
-        alert(
+        setErrorMessage(
           'Invalid payment amount',
         );
 
@@ -322,10 +495,16 @@ export default function CustomersPage() {
           false,
         );
 
-        setPaymentAmount('');
+        setPaymentAmount(
+          '',
+        );
 
         setSelectedCustomer(
           null,
+        );
+
+        setSuccessMessage(
+          'Payment received successfully',
         );
 
         fetchCustomers();
@@ -336,7 +515,7 @@ export default function CustomersPage() {
           error,
         );
 
-        alert(
+        setErrorMessage(
           'Failed receiving payment',
         );
       } finally {
@@ -376,6 +555,46 @@ export default function CustomersPage() {
           </Button>
         </div>
 
+        {errorMessage && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+            <div className="flex items-center justify-between">
+              <span>
+                {errorMessage}
+              </span>
+
+              <button
+                onClick={() =>
+                  setErrorMessage(
+                    '',
+                  )
+                }
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+            <div className="flex items-center justify-between">
+              <span>
+                {successMessage}
+              </span>
+
+              <button
+                onClick={() =>
+                  setSuccessMessage(
+                    '',
+                  )
+                }
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
         <Card className="p-0 overflow-hidden">
           <Table>
             <TableHead>
@@ -409,11 +628,30 @@ export default function CustomersPage() {
                     }
                   >
                     <TableCell>
-                      <span className="font-medium">
-                        {
-                          customer.name
-                        }
-                      </span>
+                      <div>
+                        <div className="font-medium">
+                          {
+                            customer.name
+                          }
+                        </div>
+
+                        {customer.mobile_enabled ===
+  1 && (
+  <div className="mt-2">
+    <span
+      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+        customer.retailer_disabled
+          ? 'bg-red-100 text-red-700'
+          : 'bg-blue-100 text-blue-700'
+      }`}
+    >
+      {customer.retailer_disabled
+        ? 'Mobile Disabled'
+        : 'Mobile Enabled'}
+    </span>
+  </div>
+)}
+                      </div>
                     </TableCell>
 
                     <TableCell>
@@ -450,70 +688,121 @@ export default function CustomersPage() {
                     </TableCell>
 
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="secondary"
-                          className="px-3 py-2"
-                          onClick={() => {
-                            setEditingCustomer(
-                              customer,
-                            );
+                      <div className="flex gap-2 flex-wrap">
+  <Button
+    variant="secondary"
+    className="px-3 py-2"
+    onClick={() => {
+      setEditingCustomer(
+        customer,
+      );
 
-                            setCustomerName(
-                              customer.name,
-                            );
+      setCustomerName(
+        customer.name,
+      );
 
-                            setCustomerPhone(
-                              customer.phone ||
-                                '',
-                            );
+      setCustomerPhone(
+        customer.phone ||
+          '',
+      );
 
-                            setCreateModalOpen(
-                              true,
-                            );
-                          }}
-                        >
-                          Edit
-                        </Button>
+      setCreateModalOpen(
+        true,
+      );
+    }}
+  >
+    Edit
+  </Button>
 
-                        <Button
-                          variant="danger"
-                          className="px-3 py-2"
-                          onClick={() =>
-                            handleDeleteCustomer(
-                              customer,
-                            )
-                          }
-                        >
-                          Delete
-                        </Button>
+  <Button
+    variant="danger"
+    className="px-3 py-2"
+    onClick={() => {
+      setSelectedCustomer(
+        customer,
+      );
 
-                        <Button
-                          variant="success"
-                          className="px-3 py-2"
-                          disabled={
-                            Number(
-                              customer.current_balance ||
-                                0,
-                            ) <= 0
-                          }
-                          onClick={() => {
-                            setSelectedCustomer(
-                              customer,
-                            );
+      setDeleteModalOpen(
+        true,
+      );
+    }}
+  >
+    Delete
+  </Button>
 
-                            setPaymentAmount(
-                              '',
-                            );
+  <Button
+    variant="success"
+    className="px-3 py-2"
+    disabled={
+      Number(
+        customer.current_balance ||
+          0,
+      ) <= 0
+    }
+    onClick={() => {
+      setSelectedCustomer(
+        customer,
+      );
 
-                            setPaymentModalOpen(
-                              true,
-                            );
-                          }}
-                        >
-                          Payment
-                        </Button>
-                      </div>
+      setPaymentAmount(
+        '',
+      );
+
+      setPaymentModalOpen(
+        true,
+      );
+    }}
+  >
+    Payment
+  </Button>
+
+  {customer.mobile_enabled ===
+    1 && (
+    <Button
+      variant="secondary"
+      className={`px-3 py-2 ${
+        customer.retailer_disabled
+          ? 'border border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
+          : 'border border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+      }`}
+      disabled={saving}
+      onClick={async () => {
+        try {
+          setSaving(true);
+
+          await setRetailerDisabledState(
+            customer.mobile_sync_id!,
+            !customer.retailer_disabled,
+          );
+
+          setSuccessMessage(
+            customer.retailer_disabled
+              ? 'Retailer enabled successfully'
+              : 'Retailer disabled successfully',
+          );
+
+          await fetchCustomers();
+        } catch (
+          error
+        ) {
+          console.error(
+            error,
+          );
+
+          setErrorMessage(
+            'Failed updating retailer status',
+          );
+        } finally {
+          setSaving(false);
+        }
+      }}
+    >
+      {customer.retailer_disabled
+        ? 'Enable App'
+        : 'Disable App'}
+    </Button>
+  )}
+</div>
                     </TableCell>
                   </TableRow>
                 ),
@@ -577,6 +866,53 @@ export default function CustomersPage() {
                 )
               }
             />
+
+            {!editingCustomer && (
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={
+                      mobileEnabled
+                    }
+                    onChange={(e) =>
+                      setMobileEnabled(
+                        e.target
+                          .checked,
+                      )
+                    }
+                  />
+
+                  <span className="font-medium">
+                    Enable Mobile Ordering
+                  </span>
+                </label>
+
+                {mobileEnabled && (
+                  <div className="mt-4">
+                    <Input
+                      type="password"
+                      placeholder="Retailer Password"
+                      value={
+                        retailerPassword
+                      }
+                      onChange={(e) =>
+                        setRetailerPassword(
+                          e.target
+                            .value,
+                        )
+                      }
+                    />
+
+                    <p className="text-xs text-slate-500 mt-2">
+                      Retailer will use
+                      phone + password
+                      to login into mobile app.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 mt-6">
@@ -681,6 +1017,139 @@ export default function CustomersPage() {
               }
             >
               Confirm Payment
+            </Button>
+          </div>
+        </Modal>
+
+        <Modal
+          open={
+            deleteModalOpen &&
+            !!selectedCustomer
+          }
+          title="Delete Customer"
+          onClose={() =>
+            setDeleteModalOpen(
+              false,
+            )
+          }
+        >
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+              <p className="font-semibold text-red-700">
+                Are you sure you want to delete this customer?
+              </p>
+
+              <div className="mt-4 space-y-2 text-sm">
+                <p>
+                  <strong>
+                    Name:
+                  </strong>{' '}
+                  {
+                    selectedCustomer?.name
+                  }
+                </p>
+
+                <p>
+                  <strong>
+                    Phone:
+                  </strong>{' '}
+                  {selectedCustomer?.phone ||
+                    '-'}
+                </p>
+
+                <p>
+                  <strong>
+                    Balance:
+                  </strong>{' '}
+                  Rs.{' '}
+                  {Number(
+                    selectedCustomer?.current_balance ||
+                      0,
+                  ).toFixed(
+                    2,
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() =>
+                  setDeleteModalOpen(
+                    false,
+                  )
+                }
+              >
+                Cancel
+              </Button>
+
+              <Button
+                variant="danger"
+                className="flex-1"
+                disabled={saving}
+                onClick={
+                  handleDeleteCustomer
+                }
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          open={
+            credentialsModalOpen
+          }
+          title="Retailer Account Created"
+          onClose={() =>
+            setCredentialsModalOpen(
+              false,
+            )
+          }
+        >
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
+              <p className="font-semibold text-green-700 mb-3">
+                Retailer Credentials
+              </p>
+
+              <div className="space-y-2 text-sm">
+                <p>
+                  <strong>
+                    Phone:
+                  </strong>{' '}
+                  {
+                    createdRetailerCredentials?.phone
+                  }
+                </p>
+
+                <p>
+                  <strong>
+                    Password:
+                  </strong>{' '}
+                  {
+                    createdRetailerCredentials?.password
+                  }
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-500">
+              Share these credentials with the retailer for mobile app login.
+            </p>
+
+            <Button
+              className="w-full"
+              onClick={() =>
+                setCredentialsModalOpen(
+                  false,
+                )
+              }
+            >
+              Done
             </Button>
           </div>
         </Modal>

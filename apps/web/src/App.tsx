@@ -5,22 +5,15 @@ import {
 } from 'react-router-dom';
 
 import DashboardPage from './pages/dashboard/dashboard-page';
-
 import PosPage from './pages/pos/pos-page';
-
 import InventoryPage from './pages/inventory/inventory-page';
-
 import ReportsPage from './pages/reports/reports-page';
-
 import CustomersPage from './pages/customers/customers-page';
-
 import LedgerPage from './pages/ledger/ledger-page';
-
 import SalesPage from './pages/sales/sales-page';
-
 import LocalLoginPage from './pages/auth/local-login-page';
-
 import SettingsPage from './pages/settings/settings-page';
+import OrdersPage from './pages/orders/orders-page';
 
 import ProtectedRoute from './components/auth/protected-route';
 
@@ -48,6 +41,15 @@ export default function App() {
         element={
           <ProtectedRoute>
             <PosPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/orders"
+        element={
+          <ProtectedRoute>
+            <OrdersPage />
           </ProtectedRoute>
         }
       />

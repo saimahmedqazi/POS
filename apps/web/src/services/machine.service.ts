@@ -2,6 +2,7 @@ import {
   platform,
   arch,
   version,
+  hostname,
 } from '@tauri-apps/plugin-os';
 
 export async function getMachineFingerprint() {
@@ -9,12 +10,15 @@ export async function getMachineFingerprint() {
     os,
     architecture,
     osVersion,
+    host,
   ] = await Promise.all([
     platform(),
 
     arch(),
 
     version(),
+
+    hostname(),
   ]);
 
   return btoa(
@@ -24,6 +28,8 @@ export async function getMachineFingerprint() {
       architecture,
 
       osVersion,
+
+      host,
     }),
   );
 }

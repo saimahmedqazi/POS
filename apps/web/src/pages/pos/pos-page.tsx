@@ -59,11 +59,11 @@ type Product = {
 };
 
 const safeMoney = (
-    value: number,
-  ) =>
-    Number(
-      value.toFixed(2),
-    );
+  value: number,
+) =>
+  Number(
+    value.toFixed(2),
+  );
 export default function PosPage() {
   const [
     products,
@@ -73,7 +73,7 @@ export default function PosPage() {
   );
 
 
-  
+
   const setQuantity =
     useCartStore(
       (state: any) =>
@@ -172,67 +172,68 @@ export default function PosPage() {
   ] = useState<
     'PAID' | 'CREDIT'
   >('PAID');
+  const loadLocalData =
+    async () => {
+      try {
+        // PRODUCTS
+        const localProducts =
+          await getProducts();
+
+        setProducts(
+          (
+            localProducts as any[]
+          ).map(
+            (
+              product: any,
+            ) => ({
+              id: product.id,
+
+              name:
+                product.name,
+
+              salePrice:
+                Number(
+                  product.sale_price ||
+                  0,
+                ),
+
+              sku:
+                product.sku || '',
+
+              barcode:
+                product.barcode ||
+                '',
+
+              quantity:
+                Number(
+                  product.quantity ||
+                  0,
+                ),
+            }),
+          ),
+        );
+
+
+        const localCustomers =
+          await getCustomers();
+
+        setCustomers(
+          localCustomers as any[],
+        );
+      } catch (
+      error
+      ) {
+        console.error(
+          'Failed loading local POS data',
+          error,
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   useEffect(() => {
-    const loadLocalData =
-      async () => {
-        try {
-          // PRODUCTS
-          const localProducts =
-            await getProducts();
 
-          setProducts(
-            (
-              localProducts as any[]
-            ).map(
-              (
-                product: any,
-              ) => ({
-                id: product.id,
-
-                name:
-                  product.name,
-
-                salePrice:
-                  Number(
-                    product.sale_price ||
-                    0,
-                  ),
-
-                sku:
-                  product.sku || '',
-
-                barcode:
-                  product.barcode ||
-                  '',
-
-                quantity:
-                  Number(
-                    product.quantity ||
-                    0,
-                  ),
-              }),
-            ),
-          );
-
-
-          const localCustomers =
-            await getCustomers();
-
-          setCustomers(
-            localCustomers as any[],
-          );
-        } catch (
-        error
-        ) {
-          console.error(
-            'Failed loading local POS data',
-            error,
-          );
-        } finally {
-          setLoading(false);
-        }
-      };
 
     loadLocalData();
   }, []);
@@ -327,20 +328,20 @@ export default function PosPage() {
         return products;
       }
 
-     return products.filter(
-  (product) =>
-    product.name
-      ?.toLowerCase()
-      .includes(query) ||
+      return products.filter(
+        (product) =>
+          product.name
+            ?.toLowerCase()
+            .includes(query) ||
 
-    product.sku
-      ?.toLowerCase()
-      .includes(query) ||
+          product.sku
+            ?.toLowerCase()
+            .includes(query) ||
 
-    product.barcode
-      ?.toLowerCase()
-      .includes(query),
-);
+          product.barcode
+            ?.toLowerCase()
+            .includes(query),
+      );
     }, [
       products,
       search,
@@ -359,15 +360,15 @@ export default function PosPage() {
     if (!match) {
       return;
     }
-if (
-  match.quantity <= 0
-) {
-  alert(
-    'Out of stock',
-  );
+    if (
+      match.quantity <= 0
+    ) {
+      alert(
+        'Out of stock',
+      );
 
-  return;
-}
+      return;
+    }
     addItem({
       productId:
         match.id,
@@ -413,6 +414,44 @@ if (
         setCheckoutLoading(
           true,
         );
+        const latestProducts =
+          await getProducts();
+
+        for (const item of items) {
+          const latestProduct =
+            (
+              latestProducts as any[]
+            ).find(
+              (
+                product: any,
+              ) =>
+                product.id ===
+                item.productId,
+            );
+
+          if (
+            !latestProduct
+          ) {
+            alert(
+              `${item.name} no longer exists`,
+            );
+
+            return;
+          }
+
+          if (
+            Number(
+              latestProduct.quantity ||
+              0,
+            ) < item.quantity
+          ) {
+            alert(
+              `Insufficient stock for ${item.name}`,
+            );
+
+            return;
+          }
+        }
 
         const salePayload = {
           saleId:
@@ -435,11 +474,11 @@ if (
                 ),
 
               unitPrice:
-  safeMoney(
-    Number(
-      item.price,
-    ),
-  ),
+                safeMoney(
+                  Number(
+                    item.price,
+                  ),
+                ),
             }),
           ),
 
@@ -447,127 +486,142 @@ if (
 
           paymentStatus,
         };
-for (const item of items) {
-  if (
-    !Number.isFinite(
-      Number(item.price),
-    )
-  ) {
-    alert(
-      `Invalid product price: ${item.name}`,
-    );
+        for (const item of items) {
+          if (
+            !Number.isFinite(
+              Number(item.price),
+            )
+          ) {
+            alert(
+              `Invalid product price: ${item.name}`,
+            );
 
-    return;
-  }
+            return;
+          }
 
-  if (
-    !Number.isFinite(
-      Number(item.quantity),
-    ) ||
-    Number(item.quantity) <= 0
-  ) {
-    alert(
-      `Invalid quantity: ${item.name}`,
-    );
+          if (
+            !Number.isFinite(
+              Number(item.quantity),
+            ) ||
+            Number(item.quantity) <= 0
+          ) {
+            alert(
+              `Invalid quantity: ${item.name}`,
+            );
 
-    return;
-  }
-}
+            return;
+          }
+        }
         // SAVE LOCALLY
-        await createLocalSale(
-          salePayload,
-        );
+       // SAVE LOCALLY
+await createLocalSale(
+  salePayload,
+);
 
-        // UPDATE UI STOCK
-        setProducts((prev) =>
-          prev.map(
-            (
-              product: any,
-            ) => {
-              const soldItem =
-                salePayload.items.find(
-                  (
-                    item: any,
-                  ) =>
-                    item.productId ===
-                    product.id,
-                );
+// IMPORTANT
+setCheckoutLoading(
+  false,
+);
 
-              if (
-                !soldItem
-              ) {
-                return product;
-              }
+setTimeout(() => {
+  searchInputRef.current?.focus();
+}, 0);
 
-              return {
-                ...product,
+// REFRESH PRODUCTS ONLY
+const refreshedProducts =
+  await getProducts();
 
-                quantity:
-                  Math.max(
-                    Number(
-                      product.quantity ||
-                      0,
-                    ) -
-                    Number(
-                      soldItem.quantity,
-                    ),
-                    0,
-                  ),
-              };
-            },
-          ),
-        );
+setProducts(
+  (
+    refreshedProducts as any[]
+  ).map(
+    (
+      product: any,
+    ) => ({
+      id: product.id,
 
-        // RECEIPT
-        setReceiptItems([
-          ...items,
-        ]);
+      name:
+        product.name,
 
-        setReceiptTotal(
-          total,
-        );
+      salePrice:
+        Number(
+          product.sale_price ||
+            0,
+        ),
 
-        setReceiptOpen(
-          true,
-        );
+      sku:
+        product.sku || '',
 
-        // RESET
-        clearCart();
+      barcode:
+        product.barcode ||
+            '',
 
-        setSelectedCustomerId(
-          '',
-        );
+      quantity:
+        Number(
+          product.quantity ||
+            0,
+        ),
+    }),
+  ),
+);
 
-        setPaymentStatus(
-          'PAID',
-        );
+// SAVE RECEIPT DATA BEFORE CLEARING
+const receiptData = [
+  ...items,
+];
 
-        setSearch('');
+const receiptTotal =
+  total;
 
-        alert(
-          'Sale completed successfully.',
-        );
+// RESET UI FAST
+clearCart();
+
+setSelectedCustomerId(
+  '',
+);
+
+setPaymentStatus(
+  'PAID',
+);
+
+setSearch('');
+
+// SHOW RECEIPT
+setReceiptItems(
+  receiptData,
+);
+
+setReceiptTotal(
+  receiptTotal,
+);
+
+setReceiptOpen(
+  true,
+);
+       
+
       } catch (
       error
       ) {
         console.error(
           error,
         );
+        setCheckoutLoading(
+    false,
+  );
+
 
         alert(
-          'Failed to complete sale.',
+          error instanceof Error
+            ? error.message
+            : 'Failed to complete sale.',
         );
-      } finally {
-        setCheckoutLoading(
-          false,
-        );
-
         setTimeout(() => {
           searchInputRef.current?.focus();
         }, 0);
       }
     };
-  
+
   const handleBarcodeScan =
     (
       barcode: string,
@@ -646,6 +700,10 @@ for (const item of items) {
             <Card>
               <div className="flex justify-end mb-4">
                 <Button
+                  disabled={
+                    checkoutLoading ||
+                    scannerOpen
+                  }
                   onClick={() =>
                     setScannerOpen(
                       true,
@@ -675,12 +733,12 @@ for (const item of items) {
                   }
                 />
               </div>
-{filteredProducts.length ===
-  0 && (
-  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
-    No products found
-  </div>
-)}
+              {filteredProducts.length ===
+                0 && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
+                    No products found
+                  </div>
+                )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredProducts.map(
                   (
@@ -749,6 +807,9 @@ for (const item of items) {
                         </span>
 
                         <Button
+                          disabled={
+                            checkoutLoading
+                          }
                           onClick={() => {
                             const stock =
                               product.quantity || 0;
@@ -823,6 +884,9 @@ for (const item of items) {
                             <Button
                               variant="danger"
                               className="px-3 py-1"
+                              disabled={
+                                checkoutLoading
+                              }
                               onClick={() =>
                                 removeItem(
                                   item.productId,
@@ -840,28 +904,39 @@ for (const item of items) {
                             }
                           </p>
 
-                          <div className="flex items-center gap-2 mt-3">
+                          <div className="flex items-center gap-3 mt-3">
                             <Button
                               variant="secondary"
-                              className="w-8 h-8 p-0"
+                              className="w-10 h-10 p-0 text-lg font-bold"
+                              disabled={
+                                checkoutLoading ||
+                                item.quantity <= 1
+                              }
                               onClick={() =>
                                 decreaseQuantity(
                                   item.productId,
                                 )
                               }
                             >
-                              -
+                              −
                             </Button>
 
                             <Input
+                              disabled={
+                                checkoutLoading
+                              }
                               type="number"
                               min="1"
-                              value={
-                                item.quantity
-                              }
+                              max={item.stock}
+                              value={item.quantity}
                               onChange={(e) => {
                                 const raw =
                                   e.target.value;
+
+                                // EMPTY INPUT
+                                if (!raw.trim()) {
+                                  return;
+                                }
 
                                 const value =
                                   Number(raw);
@@ -875,11 +950,11 @@ for (const item of items) {
                                   return;
                                 }
 
-                                // NO DECIMALS
+                                // INTEGER ONLY
                                 const sanitized =
                                   Math.floor(value);
 
-                                // MINIMUM 1
+                                // MINIMUM
                                 if (
                                   sanitized < 1
                                 ) {
@@ -896,10 +971,6 @@ for (const item of items) {
                                   sanitized >
                                   item.stock
                                 ) {
-                                  alert(
-                                    `Only ${item.stock} items available`,
-                                  );
-
                                   setQuantity(
                                     item.productId,
                                     item.stock,
@@ -913,12 +984,17 @@ for (const item of items) {
                                   sanitized,
                                 );
                               }}
-                              className="w-16 text-center"
+                              className="w-20 text-center appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
 
                             <Button
                               variant="secondary"
-                              className="w-8 h-8 p-0"
+                              className="w-10 h-10 p-0 text-lg font-bold"
+                              disabled={
+                                checkoutLoading ||
+                                item.quantity >=
+                                item.stock
+                              }
                               onClick={() =>
                                 increaseQuantity(
                                   item.productId,
@@ -927,6 +1003,12 @@ for (const item of items) {
                             >
                               +
                             </Button>
+
+                            <div className="ml-2 text-xs text-slate-500">
+                              Stock:
+                              {' '}
+                              {item.stock}
+                            </div>
                           </div>
                         </div>
                       ),
@@ -940,6 +1022,7 @@ for (const item of items) {
                       </label>
 
                       <select
+                        disabled={checkoutLoading}
                         value={
                           selectedCustomerId
                         }
@@ -996,6 +1079,9 @@ for (const item of items) {
                               paymentStatus ===
                               'PAID'
                             }
+                            disabled={
+                              checkoutLoading
+                            }
                             onChange={() =>
                               setPaymentStatus(
                                 'PAID',
@@ -1016,6 +1102,7 @@ for (const item of items) {
                               'CREDIT'
                             }
                             disabled={
+                              checkoutLoading ||
                               !selectedCustomerId
                             }
                             onChange={() =>
@@ -1024,7 +1111,6 @@ for (const item of items) {
                               )
                             }
                           />
-
                           <span>
                             Credit
                           </span>
@@ -1057,20 +1143,26 @@ for (const item of items) {
                       <Button
                         variant="secondary"
                         className="flex-1"
-                        onClick={
-                          clearCart
-                        }
+                        onClick={clearCart}
+                        disabled={checkoutLoading}
                       >
                         Clear
                       </Button>
 
                       <Button
                         className="flex-1"
-                        onClick={
-                          handleCheckout
-                        }
+                        onClick={() => {
+                          if (
+                            checkoutLoading
+                          ) {
+                            return;
+                          }
+
+                          handleCheckout();
+                        }}
                         disabled={
-                          checkoutLoading
+                          checkoutLoading ||
+                          items.length === 0
                         }
                       >
                         {checkoutLoading
@@ -1102,9 +1194,9 @@ for (const item of items) {
             false,
           )
         }
-        
+
         onScan={
-          
+
           handleBarcodeScan
         }
       />

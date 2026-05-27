@@ -1,16 +1,18 @@
 import {
   isSetupComplete,
-  hasLicense,
-  isLicenseExpired,
-  verifyMachineLicense,
 } from '../repositories/local-auth.repository';
 
 import {
   getCurrentSession,
 } from '../repositories/session.repository';
 
+import {
+  checkLicenseStatus,
+} from './license-guard.service';
+
 export type BootstrapStatus =
   | 'SETUP_REQUIRED'
+  | 'LICENSE_REQUIRED'
   | 'LICENSE_INVALID'
   | 'LICENSE_EXPIRED'
   | 'LOGIN_REQUIRED'
@@ -25,27 +27,29 @@ export async function bootstrapApp(): Promise<BootstrapStatus> {
     return 'SETUP_REQUIRED';
   }
 
+
   // LICENSE CHECK
-  const licensed =
-    await hasLicense();
+  const licenseStatus =
+    await checkLicenseStatus();
 
-  if (!licensed) {
-    return 'LICENSE_INVALID';
-  }
-  // EXPIRY CHECK
-const expired =
-  await isLicenseExpired();
+  if (
+    !licenseStatus.valid
+  ) {
+    switch (
+      licenseStatus.reason
+    ) {
+      case 'NO_LICENSE':
+        return 'LICENSE_REQUIRED';
 
-if (expired) {
-  return 'LICENSE_EXPIRED';
-}
+      case 'INVALID_MACHINE':
+        return 'LICENSE_INVALID';
 
-  // MACHINE VALIDATION
-  const machineValid =
-    await verifyMachineLicense();
+      case 'EXPIRED':
+        return 'LICENSE_EXPIRED';
 
-  if (!machineValid) {
-    return 'LICENSE_INVALID';
+      default:
+        return 'LICENSE_INVALID';
+    }
   }
 
   // SESSION CHECK

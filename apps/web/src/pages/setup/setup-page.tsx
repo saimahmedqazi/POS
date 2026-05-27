@@ -2,8 +2,6 @@ import {
   useState,
 } from 'react';
 
-
-
 import Card from '../../components/ui/card';
 
 import Input from '../../components/ui/input';
@@ -12,24 +10,13 @@ import Button from '../../components/ui/button';
 
 import {
   createLocalUser,
-  saveLicense,
 } from '../../repositories/local-auth.repository';
 
 import {
   setSetting,
 } from '../../repositories/settings.repository';
 
-import {
-  getMachineFingerprint,
-} from '../../services/machine.service';
-
-import {
-  VALID_LICENSES,
-} from '../../config/license';
-
 export default function SetupPage() {
- 
-
   const [
     ownerName,
     setOwnerName,
@@ -46,11 +33,6 @@ export default function SetupPage() {
   ] = useState('');
 
   const [
-    licenseKey,
-    setLicenseKey,
-  ] = useState('');
-
-  const [
     loading,
     setLoading,
   ] = useState(false);
@@ -62,9 +44,6 @@ export default function SetupPage() {
 
       const normalizedOwner =
         ownerName.trim();
-
-      const normalizedLicense =
-        licenseKey.trim();
 
       const sanitizedPin =
         pin
@@ -78,8 +57,7 @@ export default function SetupPage() {
       if (
         !normalizedBusiness ||
         !normalizedOwner ||
-        !sanitizedPin ||
-        !normalizedLicense
+        !sanitizedPin
       ) {
         window.alert(
           'Please fill all fields',
@@ -104,23 +82,6 @@ export default function SetupPage() {
       try {
         setLoading(true);
 
-        // VALIDATE LICENSE
-        if (
-          !VALID_LICENSES.includes(
-            normalizedLicense,
-          )
-        ) {
-          window.alert(
-            'Invalid license key',
-          );
-
-          return;
-        }
-
-        // MACHINE ID
-        const machineId =
-          await getMachineFingerprint();
-
         // CREATE OWNER USER
         await createLocalUser(
           {
@@ -132,21 +93,17 @@ export default function SetupPage() {
           },
         );
 
-        // SAVE LICENSE
-        await saveLicense(
-          normalizedLicense,
-          normalizedBusiness,
-          machineId,
-        );
-
         // SAVE SETTINGS
         await setSetting(
           'business_name',
           normalizedBusiness,
         );
 
-        // GO TO LOGIN
-        window.location.reload();
+        // RELOAD APP
+        // bootstrap will now redirect
+        // to /activate-license
+        window.location.href =
+  '/activate-license';
       } catch (
         error: any
       ) {
@@ -214,20 +171,6 @@ export default function SetupPage() {
               value={pin}
               onChange={(e) =>
                 setPin(
-                  e.target
-                    .value,
-                )
-              }
-            />
-
-            <Input
-              type="text"
-              placeholder="License Key"
-              value={
-                licenseKey
-              }
-              onChange={(e) =>
-                setLicenseKey(
                   e.target
                     .value,
                 )

@@ -37,6 +37,15 @@ import LicenseExpiredPage from './pages/license/license-expired-page';
 
 import ProtectedRoute from './components/auth/protected-route';
 
+import LicenseActivationPage from './pages/license/license-activation-page';
+
+
+
+
+
+
+import ErrorBoundary from './components/system/error-boundary';
+
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100">
@@ -61,16 +70,19 @@ async function bootstrap() {
     </StrictMode>,
   );
 
-  try {
+ 
+
+
+    // =========================
+    // POS RUNTIME
+    // =========================
+try {
     await initDatabase();
 
     const status =
       await bootstrapApp();
 
-    console.log(
-      'BOOTSTRAP STATUS:',
-      status,
-    );
+
 
     let initialRoute =
       '/';
@@ -79,6 +91,11 @@ async function bootstrap() {
       case 'SETUP_REQUIRED':
         initialRoute =
           '/setup';
+        break;
+
+      case 'LICENSE_REQUIRED':
+        initialRoute =
+          '/activate-license';
         break;
 
       case 'LICENSE_EXPIRED':
@@ -98,56 +115,80 @@ async function bootstrap() {
     }
 
     root.render(
-      <StrictMode>
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route
-                path="/setup"
-                element={
-                  <SetupPage />
-                }
-              />
+    <BrowserRouter>
+      <ErrorBoundary>
+        <AuthProvider>
+          <Routes>
+            {/* SETUP */}
+            <Route
+              path="/setup"
+              element={
+                <SetupPage />
+              }
+            />
 
-              <Route
-                path="/login"
-                element={
-                  <LocalLoginPage />
-                }
-              />
+            {/* LOGIN */}
+            <Route
+              path="/login"
+              element={
+                <LocalLoginPage />
+              }
+            />
 
-              <Route
-                path="/license-expired"
-                element={
-                  <LicenseExpiredPage />
-                }
-              />
+            {/* LICENSE ACTIVATION */}
+            <Route
+              path="/activate-license"
+              element={
+                <LicenseActivationPage />
+              }
+            />
 
-              <Route
-                path="/*"
-                element={
+            {/* LICENSE EXPIRED */}
+            <Route
+              path="/license-expired"
+              element={
+                <LicenseExpiredPage />
+              }
+            />
+
+            {/* POS APP */}
+            <Route
+              path="/*"
+              element={
+                initialRoute ===
+                '/' ? (
                   <ProtectedRoute>
                     <App />
                   </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="*"
-                element={
+                ) : (
                   <Navigate
                     to={
                       initialRoute
                     }
                     replace
                   />
-                }
-              />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </StrictMode>,
-    );
+                )
+              }
+            />
+
+            {/* FALLBACK */}
+            <Route
+              path="*"
+              element={
+                <Navigate
+                  to={
+                    initialRoute
+                  }
+                  replace
+                />
+              }
+            />
+          </Routes>
+        </AuthProvider>
+      </ErrorBoundary>
+    </BrowserRouter>
+  
+);
   } catch (error) {
     console.error(
       error,

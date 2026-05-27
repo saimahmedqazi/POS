@@ -14,17 +14,27 @@ export async function initDatabase() {
     return db;
   }
 
-db =
-  await Database.load(
-    'sqlite:pos.db',
-  );
+  db =
+    await Database.load(
+      'sqlite:pos.db',
+    );
 
-  
+  // SQLITE PERFORMANCE
+  await db.execute(`
+    PRAGMA journal_mode = WAL
+  `);
 
-console.log(
-  'ACTIVE SQLITE DB:',
-  'sqlite:pos.db',
-);
+  await db.execute(`
+    PRAGMA busy_timeout = 5000
+  `);
+
+  await db.execute(`
+    PRAGMA synchronous = NORMAL
+  `);
+
+  await db.execute(`
+    PRAGMA temp_store = MEMORY
+  `);
 
   // PRODUCTS
   await db.execute(`
@@ -54,6 +64,16 @@ console.log(
       current_balance REAL NOT NULL DEFAULT 0
     )
   `);
+
+  await db.execute(`
+    ALTER TABLE customers
+    ADD COLUMN mobile_enabled INTEGER NOT NULL DEFAULT 0
+  `).catch(() => {});
+
+  await db.execute(`
+    ALTER TABLE customers
+    ADD COLUMN mobile_sync_id TEXT
+  `).catch(() => {});
 
   // SALES
   await db.execute(`
@@ -92,6 +112,29 @@ console.log(
     )
   `);
 
+  // INVENTORY TRANSACTIONS
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS inventory_transactions (
+      id TEXT PRIMARY KEY,
+
+      product_id TEXT NOT NULL,
+
+      type TEXT NOT NULL,
+
+      quantity_change REAL NOT NULL,
+
+      previous_quantity REAL NOT NULL,
+
+      new_quantity REAL NOT NULL,
+
+      reference_id TEXT,
+
+      notes TEXT,
+
+      created_at TEXT NOT NULL
+    )
+  `);
+
   // APP USERS
   await db.execute(`
     CREATE TABLE IF NOT EXISTS app_users (
@@ -107,14 +150,30 @@ console.log(
   await db.execute(`
     CREATE TABLE IF NOT EXISTS licenses (
       id TEXT PRIMARY KEY,
+
       license_key TEXT NOT NULL,
-      machine_id TEXT,
-      activated INTEGER NOT NULL DEFAULT 0,
-      business_name TEXT,
-      expires_at TEXT,
+
+      machine_id TEXT NOT NULL,
+
+      business_name TEXT NOT NULL,
+
+      expires_at TEXT NOT NULL,
+
+      last_validated_at TEXT,
+
       created_at TEXT NOT NULL
     )
   `);
+
+  await db.execute(`
+    ALTER TABLE licenses
+    ADD COLUMN last_validated_at TEXT
+  `).catch(() => {});
+
+  await db.execute(`
+    ALTER TABLE licenses
+    DROP COLUMN activated
+  `).catch(() => {});
 
   // LEDGER ENTRIES
   await db.execute(`
@@ -137,12 +196,56 @@ console.log(
     )
   `);
 
+  // INDEXES
+
+
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS idx_products_sku
+    ON products(sku)
+  `);
+
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS idx_products_barcode
+    ON products(barcode)
+  `);
+
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS idx_sales_created_at
+    ON sales(created_at)
+  `);
+
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS idx_sales_customer_id
+    ON sales(customer_id)
+  `);
+
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id
+    ON sale_items(sale_id)
+  `);
+
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS idx_sale_items_product_id
+    ON sale_items(product_id)
+  `);
+
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS idx_inventory_transactions_product_id
+    ON inventory_transactions(product_id)
+  `);
+
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS idx_inventory_transactions_created_at
+    ON inventory_transactions(created_at)
+  `);
+
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS idx_ledger_customer_id
+    ON ledger_entries(customer_id)
+  `);
+
   initialized =
     true;
-
-  console.log(
-    'SQLite database initialized',
-  );
 
   return db;
 }

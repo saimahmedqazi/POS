@@ -2,9 +2,7 @@ import {
   useState,
 } from 'react';
 
-import {
-  useNavigate,
-} from 'react-router-dom';
+
 
 import Card from '../../components/ui/card';
 
@@ -20,18 +18,11 @@ import {
   createSession,
 } from '../../repositories/session.repository';
 
-import {
-  useAuth,
-} from '../../context/auth-context';
+
 
 export default function LocalLoginPage() {
-  const navigate =
-    useNavigate();
 
-  const {
-    refreshUser,
-  } = useAuth();
-
+ 
   const [pin, setPin] =
     useState('');
 
@@ -91,26 +82,8 @@ export default function LocalLoginPage() {
         await createSession(
           user.id,
         );
-
-        // REFRESH AUTH CONTEXT
-        await refreshUser();
-
-        // SMALL DELAY
-        await new Promise(
-          (resolve) =>
-            setTimeout(
-              resolve,
-              100,
-            ),
-        );
-
-        // NAVIGATE
-        navigate(
-          '/',
-          {
-            replace: true,
-          },
-        );
+window.location.href =
+  '/';
       } catch (
         error
       ) {

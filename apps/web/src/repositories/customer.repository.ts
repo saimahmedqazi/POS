@@ -115,3 +115,25 @@ export async function receiveCustomerPayment(
     ],
   );
 }
+
+export async function enableCustomerMobileAccess(
+  customerId: string,
+  mobileSyncId: string,
+) {
+  const db =
+    getDatabase();
+
+  await db.execute(
+    `
+    UPDATE customers
+    SET
+      mobile_enabled = 1,
+      mobile_sync_id = ?
+    WHERE id = ?
+    `,
+    [
+      mobileSyncId,
+      customerId,
+    ],
+  );
+}

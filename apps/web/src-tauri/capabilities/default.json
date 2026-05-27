@@ -6,6 +6,10 @@
     "main"
   ],
   "permissions": [
+    "os:allow-hostname",
+    "os:allow-platform",
+    "os:allow-arch",
+    "os:allow-version",
     "core:default",
     "dialog:default",
     "dialog:allow-open",

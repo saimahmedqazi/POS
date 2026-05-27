@@ -12,10 +12,11 @@ export async function createLocalSale(
     value: number,
   ) =>
     Number(
-      value.toFixed(2),
+      Number(value || 0).toFixed(
+        2,
+      ),
     );
 
-  // VALIDATE ITEMS
   if (
     !Array.isArray(
       salePayload.items,
@@ -27,9 +28,7 @@ export async function createLocalSale(
       'Cart is empty',
     );
   }
-  
 
-  // SANITIZE ITEMS
   const sanitizedItems =
     salePayload.items.map(
       (item: any) => {
@@ -42,15 +41,10 @@ export async function createLocalSale(
 
         const unitPrice =
           safeMoney(
-            Number(
-              item.unitPrice,
-            ),
+            item.unitPrice,
           );
 
         if (
-          !Number.isFinite(
-            quantity,
-          ) ||
           quantity <= 0
         ) {
           throw new Error(
@@ -61,8 +55,7 @@ export async function createLocalSale(
         if (
           !Number.isFinite(
             unitPrice,
-          ) ||
-          unitPrice < 0
+          )
         ) {
           throw new Error(
             'Invalid price',
@@ -80,6 +73,44 @@ export async function createLocalSale(
       },
     );
 
+  // VALIDATE STOCK BEFORE ANY WRITE
+  for (const item of sanitizedItems) {
+    const rows =
+      await db.select(
+        `
+        SELECT *
+        FROM products
+        WHERE id = ?
+        LIMIT 1
+        `,
+        [item.productId],
+      );
+
+    const product =
+      (rows as any[])[0];
+
+    if (!product) {
+      throw new Error(
+        'Product not found',
+      );
+    }
+
+    const stock =
+      Number(
+        product.quantity ||
+          0,
+      );
+
+    if (
+      stock <
+      item.quantity
+    ) {
+      throw new Error(
+        `Insufficient stock for ${product.name}`,
+      );
+    }
+  }
+
   const totalAmount =
     safeMoney(
       sanitizedItems.reduce(
@@ -88,20 +119,16 @@ export async function createLocalSale(
           item: any,
         ) =>
           sum +
-          safeMoney(
-            item.quantity *
-              item.unitPrice,
-          ),
+          item.quantity *
+            item.unitPrice,
         0,
       ),
     );
 
   const discount =
     safeMoney(
-      Number(
-        salePayload.discount ||
-          0,
-      ),
+      salePayload.discount ||
+        0,
     );
 
   const finalAmount =
@@ -110,214 +137,262 @@ export async function createLocalSale(
         discount,
     );
 
-  if (finalAmount < 0) {
-    throw new Error(
-      'Invalid final amount',
-    );
-  }
+  try {
+    // CREATE SALE
+    await db.execute(
+      `
+      INSERT INTO sales (
+        id,
+        customer_id,
+        total_amount,
+        discount,
+        final_amount,
+        payment_status,
+        synced,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        salePayload.saleId,
 
-  // STOCK VALIDATION
-  for (const item of sanitizedItems) {
-    const products =
-      await db.select(
+        salePayload.customerId ||
+          null,
+
+        totalAmount,
+
+        discount,
+
+        finalAmount,
+
+        salePayload.paymentStatus,
+
+        0,
+
+        new Date().toISOString(),
+      ],
+    );
+
+    // CUSTOMER CREDIT
+    if (
+      salePayload.paymentStatus ===
+        'CREDIT' &&
+      salePayload.customerId
+    ) {
+      await db.execute(
         `
-        SELECT quantity
-        FROM products
+        UPDATE customers
+        SET current_balance =
+          current_balance + ?
         WHERE id = ?
-        LIMIT 1
         `,
         [
+          finalAmount,
+          salePayload.customerId,
+        ],
+      );
+
+      await db.execute(
+        `
+        INSERT INTO ledger_entries (
+          id,
+          customer_id,
+          type,
+          amount,
+          reference_type,
+          reference_id,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          crypto.randomUUID(),
+
+          salePayload.customerId,
+
+          'DEBIT',
+
+          finalAmount,
+
+          'SALE',
+
+          salePayload.saleId,
+
+          new Date().toISOString(),
+        ],
+      );
+    }
+
+    // ITEMS + STOCK
+    for (const item of sanitizedItems) {
+      const subtotal =
+        safeMoney(
+          item.quantity *
+            item.unitPrice,
+        );
+
+      // INSERT SALE ITEM
+      await db.execute(
+        `
+        INSERT INTO sale_items (
+          id,
+          sale_id,
+          product_id,
+          quantity,
+          unit_price,
+          subtotal
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        `,
+        [
+          crypto.randomUUID(),
+
+          salePayload.saleId,
+
+          item.productId,
+
+          item.quantity,
+
+          item.unitPrice,
+
+          subtotal,
+        ],
+      );
+
+      // GET CURRENT STOCK
+      const stockRows =
+        await db.select(
+          `
+          SELECT quantity
+          FROM products
+          WHERE id = ?
+          LIMIT 1
+          `,
+          [item.productId],
+        );
+
+      const currentStock =
+        Number(
+          (
+            stockRows as any[]
+          )[0]?.quantity ||
+            0,
+        );
+
+      const newStock =
+        currentStock -
+        item.quantity;
+
+      // UPDATE STOCK
+      await db.execute(
+        `
+        UPDATE products
+        SET quantity = ?
+        WHERE id = ?
+        `,
+        [
+          newStock,
           item.productId,
         ],
       );
 
-    const product =
-      (
-        products as any[]
-      )[0];
+      // INVENTORY HISTORY
+      await db.execute(
+        `
+        INSERT INTO inventory_transactions (
+          id,
+          product_id,
+          type,
+          quantity_change,
+          previous_quantity,
+          new_quantity,
+          reference_id,
+          notes,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          crypto.randomUUID(),
 
-    if (!product) {
-      throw new Error(
-        'Product not found',
+          item.productId,
+
+          'SALE',
+
+          -item.quantity,
+
+          currentStock,
+
+          newStock,
+
+          salePayload.saleId,
+
+          'POS sale deduction',
+
+          new Date().toISOString(),
+        ],
+      );
+
+      // SMALL DELAY TO PREVENT SQLITE LOCK
+      await new Promise(
+        (resolve) =>
+          setTimeout(
+            resolve,
+            15,
+          ),
       );
     }
 
-    const currentStock =
-      Number(
-        product.quantity ||
-          0,
-      );
-
-    if (
-      currentStock <
-      item.quantity
-    ) {
-      throw new Error(
-        'Insufficient stock',
-      );
-    }
-  }
-
-  // INSERT SALE
-  await db.execute(
-    `
-    INSERT INTO sales (
-      id,
-      customer_id,
-      total_amount,
-      discount,
-      final_amount,
-      payment_status,
-      synced,
-      created_at
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    [
-      salePayload.saleId,
-
-      salePayload.customerId ||
-        null,
-
-      totalAmount,
-
-      discount,
-
-      finalAmount,
-
-      salePayload.paymentStatus,
-
-      0,
-
-      new Date().toISOString(),
-    ],
-  );
-// CREDIT CUSTOMER LEDGER
-if (
-  salePayload.paymentStatus ===
-    'CREDIT' &&
-  salePayload.customerId
-) {
-  // UPDATE CUSTOMER BALANCE
-  await db.execute(
-    `
-    UPDATE customers
-    SET current_balance =
-      current_balance + ?
-    WHERE id = ?
-    `,
-    [
-      finalAmount,
-      salePayload.customerId,
-    ],
-  );
-
-  // CREATE LEDGER ENTRY
-  await db.execute(
-    `
-    INSERT INTO ledger_entries (
-      id,
-      customer_id,
-      type,
-      amount,
-      reference_type,
-      reference_id,
-      created_at
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    `,
-    [
-      crypto.randomUUID(),
-
-      salePayload.customerId,
-
-      'DEBIT',
-
-      finalAmount,
-
-      'SALE',
-
-      salePayload.saleId,
-
-      new Date().toISOString(),
-    ],
-  );
-}
-  // INSERT ITEMS + UPDATE STOCK
-  for (const item of sanitizedItems) {
-    const subtotal =
-      safeMoney(
-        item.quantity *
-          item.unitPrice,
-      );
-
+    // SYNC QUEUE
     await db.execute(
       `
-      INSERT INTO sale_items (
+      INSERT INTO sync_queue (
         id,
-        sale_id,
-        product_id,
-        quantity,
-        unit_price,
-        subtotal
+        event_type,
+        payload,
+        synced,
+        created_at
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?)
       `,
       [
         crypto.randomUUID(),
 
-        salePayload.saleId,
+        'SALE_CREATED',
 
-        item.productId,
+        JSON.stringify(
+          salePayload,
+        ),
 
-        item.quantity,
+        0,
 
-        item.unitPrice,
-
-        subtotal,
+        new Date().toISOString(),
       ],
     );
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    // MANUAL CLEANUP
+    await db.execute(
+      `
+      DELETE FROM sale_items
+      WHERE sale_id = ?
+      `,
+      [salePayload.saleId],
+    ).catch(() => {});
 
     await db.execute(
       `
-      UPDATE products
-      SET quantity =
-        MAX(quantity - ?, 0)
+      DELETE FROM sales
       WHERE id = ?
       `,
-      [
-        item.quantity,
-        item.productId,
-      ],
-    );
+      [salePayload.saleId],
+    ).catch(() => {});
+
+    throw error;
   }
-
-  // SYNC QUEUE
-  await db.execute(
-    `
-    INSERT INTO sync_queue (
-      id,
-      event_type,
-      payload,
-      synced,
-      created_at
-    )
-    VALUES (?, ?, ?, ?, ?)
-    `,
-    [
-      crypto.randomUUID(),
-
-      'SALE_CREATED',
-
-      JSON.stringify(
-        salePayload,
-      ),
-
-      0,
-
-      new Date().toISOString(),
-    ],
-  );
 }
 
 export async function getLocalSales() {

@@ -53,13 +53,7 @@ export default function BarcodeScannerModal({
         onClose();
       },
 
-      (
-        error,
-      ) => {
-        console.log(
-          error,
-        );
-      },
+     undefined,
     );
 
     return () => {

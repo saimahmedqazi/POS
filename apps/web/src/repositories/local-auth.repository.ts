@@ -15,10 +15,6 @@ export async function isSetupComplete() {
       `,
     );
 
-  console.log(
-    'SETUP CHECK USERS:',
-    users,
-  );
 
   return (
     (users as any[])
@@ -34,10 +30,7 @@ export async function createLocalUser(
   const db =
     getDatabase();
 
-  console.log(
-    'CREATING USER:',
-    data,
-  );
+  
 
   try {
     await db.execute(
@@ -64,23 +57,10 @@ export async function createLocalUser(
       ],
     );
 
-    const verify =
-      await db.select(
-        `
-        SELECT *
-        FROM app_users
-        `,
-      );
-
-    console.log(
-      'USERS AFTER INSERT:',
-      verify,
-    );
+  
   } catch (error) {
-    console.error(
-      'CREATE USER FAILED:',
-      error,
-    );
+    
+    ;
 
     throw error;
   }
@@ -92,10 +72,7 @@ export async function loginLocalUser(
   const db =
     getDatabase();
 
-  console.log(
-    'LOGIN ATTEMPT PIN:',
-    pin,
-  );
+
 
   const allUsers =
     await db.select(
@@ -105,10 +82,7 @@ export async function loginLocalUser(
       `,
     );
 
-  console.log(
-    'ALL USERS:',
-    allUsers,
-  );
+
 
   const matched =
     (allUsers as any[]).find(
@@ -119,31 +93,29 @@ export async function loginLocalUser(
         String(pin).trim(),
     );
 
-  console.log(
-    'MATCHED USER:',
-    matched,
-  );
 
   return matched;
 }
 export async function saveLicense(
-  licenseKey: string,
-  businessName: string,
-  machineId: string,
+  data: {
+    licenseKey: string;
+
+    businessName: string;
+
+    machineId: string;
+
+    expiresAt: string;
+
+    lastValidatedAt?: string;
+  },
 ) {
   const db =
     getDatabase();
 
-  // 30 DAYS LICENSE
-  const expiresAt =
-    new Date(
-      Date.now() +
-        30 *
-          24 *
-          60 *
-          60 *
-          1000,
-    ).toISOString();
+  // CLEAR OLD LICENSE CACHE
+  await db.execute(`
+    DELETE FROM licenses
+  `);
 
   await db.execute(
     `
@@ -151,9 +123,9 @@ export async function saveLicense(
       id,
       license_key,
       machine_id,
-      activated,
       business_name,
       expires_at,
+      last_validated_at,
       created_at
     )
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -161,15 +133,16 @@ export async function saveLicense(
     [
       crypto.randomUUID(),
 
-      licenseKey,
+      data.licenseKey,
 
-      machineId,
+      data.machineId,
 
-      1,
+      data.businessName,
 
-      businessName,
+      data.expiresAt,
 
-      expiresAt,
+      data.lastValidatedAt ||
+        new Date().toISOString(),
 
       new Date().toISOString(),
     ],
@@ -184,7 +157,6 @@ export async function hasLicense() {
       `
       SELECT COUNT(*) as count
       FROM licenses
-      WHERE activated = 1
       `,
     );
 
@@ -209,7 +181,6 @@ export async function verifyMachineLicense() {
       `
       SELECT *
       FROM licenses
-      WHERE activated = 1
       LIMIT 1
       `,
     );
@@ -259,13 +230,50 @@ export async function isLicenseExpired() {
       `
       SELECT *
       FROM licenses
-      WHERE activated = 1
       LIMIT 1
       `,
     );
 
   const license =
     (licenses as any[])[0];
+
+  if (!license) {
+    return true;
+  }
+
+  if (
+    !license.expires_at
+  ) {
+    return true;
+  }
+
+  return (
+    new Date(
+      license.expires_at,
+    ).getTime() <
+    Date.now()
+  );
+}
+
+export async function getLocalLicense() {
+  const db =
+    getDatabase();
+
+  const licenses =
+    await db.select(
+      `
+      SELECT *
+      FROM licenses
+      LIMIT 1
+      `,
+    );
+
+  return (licenses as any[])[0];
+}
+
+export async function isLocalLicenseExpired() {
+  const license =
+    await getLocalLicense();
 
   if (!license) {
     return true;

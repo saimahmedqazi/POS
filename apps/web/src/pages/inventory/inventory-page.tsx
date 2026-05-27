@@ -29,7 +29,13 @@ import {
   updateProduct,
   archiveProduct,
   adjustProductStock,
+  getInventoryTransactions,
 } from '../../repositories/product.repository';
+
+
+import {
+  syncProductsToCloud,
+} from '../../services/product-sync.service';
 
 type Product = {
   id: string;
@@ -120,6 +126,17 @@ export default function InventoryPage() {
   ] = useState<Product | null>(
     null,
   );
+  const [
+  syncingProducts,
+  setSyncingProducts,
+] = useState(false);
+
+  const [
+  inventoryTransactions,
+  setInventoryTransactions,
+] = useState<any[]>(
+  [],
+);
 
   const loadProducts =
     async () => {
@@ -167,6 +184,12 @@ export default function InventoryPage() {
             }),
           ),
         );
+        const transactions =
+  await getInventoryTransactions();
+
+setInventoryTransactions(
+  transactions as any[],
+);
       } catch (
         error
       ) {
@@ -183,9 +206,39 @@ export default function InventoryPage() {
       }
     };
 
+    useEffect(() => {
+  if (!errorMessage) {
+    return;
+  }
+
+  const timeout =
+    setTimeout(() => {
+      setErrorMessage('');
+    }, 3000);
+
+  return () =>
+    clearTimeout(timeout);
+}, [errorMessage]);
+
+useEffect(() => {
+  if (!successMessage) {
+    return;
+  }
+
+  const timeout =
+    setTimeout(() => {
+      setSuccessMessage('');
+    }, 2500);
+
+  return () =>
+    clearTimeout(timeout);
+}, [successMessage]);
   useEffect(() => {
     loadProducts();
-  }, []);
+    
+  }, []
+);
+
 
   const resetCreateForm =
     () => {
@@ -535,6 +588,13 @@ export default function InventoryPage() {
                 : product,
           ),
         );
+        const transactions =
+  await getInventoryTransactions();
+
+setInventoryTransactions(
+  transactions as any[],
+);
+
 
         setEditingProduct({
           ...editingProduct,
@@ -630,7 +690,7 @@ export default function InventoryPage() {
         />
 
         {errorMessage && (
-          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+         <div className="fixed top-4 right-4 z-[9999] w-full max-w-md rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 shadow-2xl">
             <div className="flex items-center justify-between">
               <span>
                 {errorMessage}
@@ -651,7 +711,7 @@ export default function InventoryPage() {
         )}
 
         {successMessage && (
-          <div className="mb-4 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+          <div className="fixed top-4 right-4 z-[9999] w-full max-w-md rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700 shadow-2xl">
             <div className="flex items-center justify-between">
               <span>
                 {
@@ -745,18 +805,66 @@ export default function InventoryPage() {
               }
             />
           </div>
+<div className="flex gap-3 mt-4">
+  <Button
+    onClick={
+      handleCreateProduct
+    }
+    disabled={
+      creating ||
+      loading
+    }
+  >
+    {creating
+      ? 'Creating...'
+      : 'Create Product'}
+  </Button>
 
-          <Button
-            onClick={
-              handleCreateProduct
-            }
-            disabled={creating}
-            className="mt-4"
-          >
-            {creating
-              ? 'Creating...'
-              : 'Create Product'}
-          </Button>
+  <Button
+    variant="secondary"
+    disabled={
+  syncingProducts ||
+  creating
+}
+    onClick={async () => {
+      try {
+        setSyncingProducts(true)
+        setErrorMessage(
+          '',
+        );
+
+        setSuccessMessage(
+          '',
+        );
+
+        await syncProductsToCloud(
+          products,
+        );
+
+        setSuccessMessage(
+          'Products synced successfully',
+        );
+      } catch (
+        error: any
+      ) {
+        console.error(
+          error,
+        );
+
+        setErrorMessage(
+          error.message ||
+            'Failed syncing products',
+        );
+      } finally {
+        setSyncingProducts(false)
+      }
+    }}
+  >
+    {syncingProducts
+  ? 'Syncing...'
+      : 'Sync Products'}
+  </Button>
+</div>
         </Card>
 
         <Table>
@@ -881,6 +989,92 @@ export default function InventoryPage() {
             )}
           </TableBody>
         </Table>
+                  <Card className="p-6 mt-4">  //fix
+  <div className="flex items-center justify-between mb-6">
+    <div>
+      <h2 className="text-2xl font-bold">
+        Inventory History
+      </h2>
+
+      <p className="text-slate-500 mt-1">
+        Recent stock movements
+      </p>
+    </div>
+  </div>
+
+  <div className="overflow-x-auto">
+    <table className="w-full">
+      <thead>
+        <tr className="border-b border-slate-200">
+          <th className="text-left py-3 px-2">
+            Product
+          </th>
+
+          <th className="text-left py-3 px-2">
+            Type
+          </th>
+
+          <th className="text-left py-3 px-2">
+            Quantity
+          </th>
+
+          <th className="text-left py-3 px-2">
+            Notes
+          </th>
+
+          <th className="text-left py-3 px-2">
+            Date
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {inventoryTransactions.map(
+          (
+            transaction,
+          ) => (
+            <tr
+              key={
+                transaction.id
+              }
+              className="border-b border-slate-100"
+            >
+              <td className="py-3 px-2 font-medium">
+                {
+                  transaction.product_name
+                }
+              </td>
+
+              <td className="py-3 px-2">
+                {
+                  transaction.type
+                }
+              </td>
+
+              <td className="py-3 px-2">
+                {
+                  transaction.quantity_change
+                }
+              </td>
+
+              <td className="py-3 px-2 text-slate-500">
+                {
+                  transaction.notes
+                }
+              </td>
+
+              <td className="py-3 px-2 text-slate-500 text-sm">
+                {new Date(
+                  transaction.created_at,
+                ).toLocaleString()}
+              </td>
+            </tr>
+          ),
+        )}
+      </tbody>
+    </table>
+  </div>
+</Card>
       </div>
 
       <Modal
@@ -1041,12 +1235,17 @@ export default function InventoryPage() {
             Cancel
           </Button>
 
-          <Button
-            onClick={
-              handleUpdateProduct
-            }
-          >
-            Save Changes
+        <Button
+  onClick={
+    handleUpdateProduct
+  }
+  disabled={
+    creating
+  }
+>
+            {creating
+  ? 'Saving...'
+  : 'Save Changes'}
           </Button>
         </div>
       </Modal>
@@ -1128,7 +1327,9 @@ export default function InventoryPage() {
             >
               Archive Product
             </Button>
+          
           </div>
+
         </div>
       </Modal>
     </AppLayout>

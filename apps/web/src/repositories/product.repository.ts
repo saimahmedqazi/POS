@@ -231,6 +231,34 @@ export async function updateProduct(
     );
   }
 
+  // GET PREVIOUS STOCK
+const existingProductRows =
+  await db.select(
+    `
+    SELECT quantity
+    FROM products
+    WHERE id = ?
+    LIMIT 1
+    `,
+    [product.id],
+  );
+
+const existingProduct =
+  (
+    existingProductRows as any[]
+  )[0];
+
+const previousQuantity =
+  Number(
+    existingProduct?.quantity ||
+      0,
+  );
+
+const stockDifference =
+  quantity -
+  previousQuantity;
+
+  
   // DUPLICATE CHECK
   const existing =
     await db.select(
@@ -289,6 +317,41 @@ export async function updateProduct(
       product.id,
     ],
   );
+  // INVENTORY ADJUSTMENT AUDIT
+if (stockDifference !== 0) {
+  await db.execute(
+    `
+    INSERT INTO inventory_transactions (
+      id,
+      product_id,
+      type,
+      quantity,
+      reference_type,
+      reference_id,
+      notes,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      crypto.randomUUID(),
+
+      product.id,
+
+      'ADJUSTMENT',
+
+      stockDifference,
+
+      'PRODUCT_EDIT',
+
+      product.id,
+
+      'Manual inventory adjustment',
+
+      new Date().toISOString(),
+    ],
+  );
+}
 
   return {
     ...product,
@@ -310,6 +373,19 @@ export async function updateProduct(
 export async function adjustProductStock(
   productId: string,
   adjustment: number,
+
+  options?: {
+    type?:
+      | 'SALE'
+      | 'PURCHASE'
+      | 'ADJUSTMENT'
+      | 'RETAILER_ORDER'
+      | 'RETURN';
+
+    referenceId?: string;
+
+    notes?: string;
+  },
 ) {
   const db =
     getDatabase();
@@ -334,19 +410,31 @@ export async function adjustProductStock(
     );
   }
 
-  const newQuantity =
-    Math.max(
-      Math.floor(
-        safeNumber(
-          product.quantity,
-        ) +
-          safeNumber(
-            adjustment,
-          ),
+  const currentQuantity =
+    Math.floor(
+      safeNumber(
+        product.quantity,
       ),
-      0,
     );
 
+  const newQuantity =
+    currentQuantity +
+    Math.floor(
+      safeNumber(
+        adjustment,
+      ),
+    );
+
+  // PREVENT NEGATIVE STOCK
+  if (
+    newQuantity < 0
+  ) {
+    throw new Error(
+      'Insufficient stock',
+    );
+  }
+
+  // UPDATE STOCK
   await db.execute(
     `
     UPDATE products
@@ -356,6 +444,46 @@ export async function adjustProductStock(
     [
       newQuantity,
       productId,
+    ],
+  );
+
+  // INSERT TRANSACTION
+  await db.execute(
+    `
+    INSERT INTO inventory_transactions (
+      id,
+      product_id,
+      type,
+      quantity_change,
+      previous_quantity,
+      new_quantity,
+      reference_id,
+      notes,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      crypto.randomUUID(),
+
+      productId,
+
+      options?.type ||
+        'ADJUSTMENT',
+
+      adjustment,
+
+      currentQuantity,
+
+      newQuantity,
+
+      options?.referenceId ||
+        null,
+
+      options?.notes ||
+        null,
+
+      new Date().toISOString(),
     ],
   );
 
@@ -380,4 +508,22 @@ export async function archiveProduct(
     `,
     [productId],
   );
+}
+
+export async function getInventoryTransactions() {
+  const db =
+    getDatabase();
+
+  return db.select(`
+    SELECT
+      inventory_transactions.*,
+      products.name as product_name
+    FROM inventory_transactions
+    LEFT JOIN products
+      ON products.id =
+      inventory_transactions.product_id
+    ORDER BY
+      inventory_transactions.created_at DESC
+    LIMIT 100
+  `);
 }

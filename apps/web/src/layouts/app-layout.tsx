@@ -18,6 +18,7 @@ import {
   Receipt,
   LogOut,
   ShieldCheck,
+  ClipboardList,
 } from 'lucide-react';
 
 import {
@@ -42,6 +43,12 @@ const navigation = [
   },
 
   {
+    name: 'Orders',
+    path: '/orders',
+    icon: ClipboardList,
+  },
+
+  {
     name: 'Sales',
     path: '/sales',
     icon: Receipt,
@@ -54,9 +61,9 @@ const navigation = [
   },
 
   {
-    name: 'Reports',
-    path: '/reports',
-    icon: BarChart3,
+    name: 'Customers',
+    path: '/customers',
+    icon: Users,
   },
 
   {
@@ -66,9 +73,9 @@ const navigation = [
   },
 
   {
-    name: 'Customers',
-    path: '/customers',
-    icon: Users,
+    name: 'Reports',
+    path: '/reports',
+    icon: BarChart3,
   },
 
   {
@@ -162,7 +169,7 @@ export default function AppLayout({
               {currentUser?.name}
             </div>
 
-            <div className="text-xs text-slate-400 mt-1">
+            <div className="text-xs text-slate-400 mt-1 uppercase tracking-wide">
               {currentUser?.role}
             </div>
           </div>
