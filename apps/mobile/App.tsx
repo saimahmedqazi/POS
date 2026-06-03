@@ -1,7 +1,13 @@
-import {
+import React, {
   useEffect,
   useState,
 } from 'react';
+
+import {
+  View,
+  Text,
+  ActivityIndicator,
+} from 'react-native';
 
 import LoginScreen from './src/screens/login-screen';
 
@@ -23,24 +29,42 @@ export default function App() {
   ] = useState(false);
 
   useEffect(() => {
-    async function bootstrap() {
-      const {
-        data,
-      } =
-        await supabase.auth.getSession();
+    let mounted = true;
 
-      setAuthenticated(
-        !!data.session,
-      );
+    async function initialize() {
+      try {
+        const {
+          data,
+        } =
+          await supabase.auth.getSession();
 
-      setLoading(false);
+        if (!mounted) {
+          return;
+        }
+
+        setAuthenticated(
+          !!data.session,
+        );
+      } catch (error) {
+        console.error(
+          'Session bootstrap failed:',
+          error,
+        );
+
+        setAuthenticated(
+          false,
+        );
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
     }
 
-    bootstrap();
+    initialize();
 
     const {
-      data:
-        authListener,
+      data: listener,
     } =
       supabase.auth.onAuthStateChange(
         (
@@ -54,23 +78,47 @@ export default function App() {
       );
 
     return () => {
-      authListener.subscription.unsubscribe();
+      mounted = false;
+
+      listener.subscription.unsubscribe();
     };
   }, []);
 
   if (loading) {
-    return null;
-  }
-
-  if (
-    !authenticated
-  ) {
     return (
-      <LoginScreen />
+      <View
+        style={{
+          flex: 1,
+          justifyContent:
+            'center',
+          alignItems:
+            'center',
+          backgroundColor:
+            '#f9fafb',
+          padding: 24,
+        }}
+      >
+        <ActivityIndicator
+          size="large"
+        />
+
+        <Text
+          style={{
+            marginTop: 16,
+            color:
+              '#6b7280',
+            fontSize: 16,
+          }}
+        >
+          Loading...
+        </Text>
+      </View>
     );
   }
 
-  return (
+  return authenticated ? (
     <AppNavigation />
+  ) : (
+    <LoginScreen />
   );
 }

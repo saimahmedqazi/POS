@@ -1,0 +1,9 @@
+node_modules
+.expo
+.git
+
+../web
+../web/src-tauri
+../pos-web
+../admin
+../api

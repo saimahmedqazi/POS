@@ -1,12 +1,12 @@
 import {
-  supabase,
-} from './supabase.service';
+  supabaseAdmin,
+} from './supabase-admin.service';
 
 export async function fetchRetailerOrders() {
   const {
     data,
     error,
-  } = await supabase
+  } = await supabaseAdmin
     .from(
       'retailer_orders',
     )
@@ -14,11 +14,11 @@ export async function fetchRetailerOrders() {
       `
       *,
       retailers (
-  id,
-  business_name,
-  phone,
-  customer_local_id
-),
+        id,
+        business_name,
+        phone,
+        customer_local_id
+      ),
       retailer_order_items (
         *
       )
@@ -48,13 +48,12 @@ export async function updateRetailerOrderStatus(
 ) {
   const {
     error,
-  } = await supabase
+  } = await supabaseAdmin
     .from(
       'retailer_orders',
     )
     .update({
       status,
-
       updated_at:
         new Date().toISOString(),
     })
@@ -78,7 +77,7 @@ export async function updateRetailerOrderItems(
   for (const update of updates) {
     const {
       error,
-    } = await supabase
+    } = await supabaseAdmin
       .from(
         'retailer_order_items',
       )

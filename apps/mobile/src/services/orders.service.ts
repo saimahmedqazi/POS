@@ -44,7 +44,6 @@ export async function placeOrder() {
       0,
     );
 
-  // GET RETAILER
   const {
     data: retailer,
     error:
@@ -53,7 +52,9 @@ export async function placeOrder() {
     .from(
       'retailers',
     )
-    .select('id')
+    .select(
+      'id, disabled'
+    )
     .eq(
       'auth_user_id',
       session.user.id,
@@ -69,7 +70,37 @@ export async function placeOrder() {
     );
   }
 
-  // CREATE ORDER
+  if (
+    retailer.disabled
+  ) {
+    throw new Error(
+      'Retailer account is disabled',
+    );
+  }
+
+  const itemsPayload =
+    cartItems.map(
+      (
+        item,
+      ) => ({
+        product_id:
+          item.id,
+
+        product_name:
+          item.name,
+
+        requested_quantity:
+          item.quantity,
+
+        unit_price:
+          item.sale_price,
+
+        subtotal:
+          item.sale_price *
+          item.quantity,
+      }),
+    );
+
   const {
     data: order,
     error: orderError,
@@ -94,53 +125,89 @@ export async function placeOrder() {
     orderError ||
     !order
   ) {
-    throw orderError;
+    throw (
+      orderError ||
+      new Error(
+        'Failed creating order',
+      )
+    );
   }
 
-const itemsPayload =
-  cartItems.map(
-    (
-      item,
-    ) => ({
-      order_id:
-        order.id,
+  try {
+    const {
+      error:
+        itemsError,
+    } = await supabase
+      .from(
+        'retailer_order_items',
+      )
+      .insert(
+        itemsPayload.map(
+          (
+            item,
+          ) => ({
+            ...item,
 
-      product_id:
-        item.id,
+            order_id:
+              order.id,
+          }),
+        ),
+      );
 
-      product_name:
-        item.name,
+    if (
+      itemsError
+    ) {
+      throw itemsError;
+    }
 
-      requested_quantity:
-        item.quantity,
+    useCartStore
+      .getState()
+      .clearCart();
 
-      unit_price:
-        item.sale_price,
-
-      subtotal:
-        item.sale_price *
-        item.quantity,
-    }),
-  );
-
-  const {
-    error:
-      itemsError,
-  } = await supabase
-    .from(
-      'retailer_order_items',
-    )
-    .insert(
-      itemsPayload,
+    return order;
+  } catch (
+    error
+  ) {
+    console.error(
+      'Order creation failed:',
+      error,
     );
 
-  if (itemsError) {
-    throw itemsError;
+    await supabase
+      .from(
+        'retailer_orders',
+      )
+      .delete()
+      .eq(
+        'id',
+        order.id,
+      );
+
+    throw new Error(
+      'Unable to place order. Please try again.',
+    );
   }
 
-  useCartStore
-    .getState()
-    .clearCart();
+}
+export async function getMyOrders() {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from('retailer_orders')
+    .select('*')
+    .order('created_at', {
+      ascending: false,
+    });
 
-  return order;
+  if (error) {
+    throw error;
+  }
+
+  console.log(
+    'ALL ORDERS:',
+    data,
+  );
+
+  return data || [];
 }

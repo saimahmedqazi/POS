@@ -1,15 +1,8 @@
+
 import {
   useEffect,
   useState,
 } from 'react';
-
-import {
-  appDataDir,
-} from '@tauri-apps/api/path';
-
-import {
-  invoke,
-} from '@tauri-apps/api/core';
 
 import AppLayout from '../../layouts/app-layout';
 
@@ -17,37 +10,30 @@ import Card from '../../components/ui/card';
 
 import Button from '../../components/ui/button';
 
-import Modal from '../../components/ui/modal';
 
 import PageHeader from '../../components/ui/page-header';
 
+
 import {
-  createBackup,
-  getBackups,
-  deleteBackup,
-  exportDatabase,
-  importDatabase,
-} from '../../services/backup.service';
+  createCloudBackup,
+} from '../../services/cloud-backup.service';
+import {
+  getCloudBackups,
+} from '../../services/cloud-restore.service';
+import {
+  getCloudBackupById,
+  restoreCloudBackup,
+} from '../../services/cloud-restore.service';
 
-type BackupFile = {
-  name: string;
 
-  path: string;
-};
 
 export default function SettingsPage() {
-  const [
-    backups,
-    setBackups,
-  ] = useState<
-    BackupFile[]
-  >([]);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(false);
 
+
+  useEffect(() => {
+    handleLoadBackups();
+  }, []);
   const [
     successMessage,
     setSuccessMessage,
@@ -58,271 +44,112 @@ export default function SettingsPage() {
     setErrorMessage,
   ] = useState('');
 
-  const [
-    deleteTarget,
-    setDeleteTarget,
-  ] = useState<BackupFile | null>(
-    null,
-  );
+
+
+
 
   const [
-    restoreTarget,
-    setRestoreTarget,
-  ] = useState<BackupFile | null>(
-    null,
-  );
+    cloudBackups,
+    setCloudBackups,
+  ] = useState<any[]>([]);
 
   const [
-    importConfirmOpen,
-    setImportConfirmOpen,
+    loadingBackups,
+    setLoadingBackups,
   ] = useState(false);
-
   const [
-    actionLoading,
-    setActionLoading,
-  ] = useState(false);
+    restoringBackupId,
+    setRestoringBackupId,
+  ] = useState<
+    string | null
+  >(null);
 
-  const loadBackups =
-    async () => {
-      try {
-        const files =
-          await getBackups();
+  async function handleLoadBackups() {
+    try {
+      setLoadingBackups(true);
 
-        const appDir =
-          await appDataDir();
+      const backups =
+        await getCloudBackups();
 
-        const backupDir =
-          `${appDir}/backups`;
+      setCloudBackups(
+        backups,
+      );
+    } catch (
+    error
+    ) {
+      console.error(
+        error,
+      );
 
-        const mapped =
-          (
-            files as any[]
-          )
-            .filter(
-              (
-                file,
-              ) =>
-                file.name,
-            )
-            .map(
-              (
-                file,
-              ) => ({
-                name:
-                  file.name,
+      alert(
+        'Failed loading backups',
+      );
+    } finally {
+      setLoadingBackups(
+        false,
+      );
+    }
+  }
 
-                path:
-                  `${backupDir}/${file.name}`,
-              }),
-            );
 
-        setBackups(
-          mapped,
-        );
-      } catch (
-        error
-      ) {
-        console.error(
-          error,
-        );
 
-        setErrorMessage(
-          'Failed loading backups',
-        );
-      }
-    };
 
-  useEffect(() => {
-    loadBackups();
-  }, []);
 
-  const handleBackup =
-    async () => {
-      try {
-        setLoading(true);
 
-        await createBackup();
 
-        await loadBackups();
 
-        setSuccessMessage(
-          'Backup created successfully',
-        );
-      } catch (
-        error
-      ) {
-        console.error(
-          error,
+
+
+  async function handleCloudRestore(
+    backupId: string,
+  ) {
+    const confirmed =
+      confirm(
+        'This will replace ALL local data. Continue?',
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setRestoringBackupId(
+        backupId,
+      );
+
+      const backupData =
+        await getCloudBackupById(
+          backupId,
         );
 
-        setErrorMessage(
-          'Backup failed',
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+      await restoreCloudBackup(
+        backupData,
+      );
 
-  const confirmDelete =
-    async () => {
-      if (!deleteTarget) {
-        return;
-      }
+      alert(
+        'Restore completed successfully. Please restart the application.',
+      );
+    } catch (error) {
+      console.error(
+        error,
+      );
 
-      try {
-        setActionLoading(
-          true,
-        );
-
-        await deleteBackup(
-          deleteTarget.path,
-        );
-
-        await loadBackups();
-
-        setSuccessMessage(
-          'Backup deleted successfully',
-        );
-
-        setDeleteTarget(
-          null,
-        );
-      } catch (
-        error
-      ) {
-        console.error(
-          error,
-        );
-
-        setErrorMessage(
-          'Delete failed',
-        );
-      } finally {
-        setActionLoading(
-          false,
-        );
-      }
-    };
-
-  const confirmRestore =
-    async () => {
-      if (
-        !restoreTarget
-      ) {
-        return;
-      }
-
-      try {
-        setActionLoading(
-          true,
-        );
-
-        await invoke(
-          'restore_database',
-          {
-            backupPath:
-              restoreTarget.path,
-          },
-        );
-
-        setSuccessMessage(
-          'Backup restored successfully. Please reopen the app.',
-        );
-
-        setRestoreTarget(
-          null,
-        );
-      } catch (
-        error
-      ) {
-        console.error(
-          error,
-        );
-
-        setErrorMessage(
-          'Restore failed',
-        );
-      } finally {
-        setActionLoading(
-          false,
-        );
-      }
-    };
-
-  const handleExport =
-    async () => {
-      try {
-        setLoading(true);
-
-        const exported =
-          await exportDatabase();
-
-        if (!exported) {
-          return;
-        }
-
-        setSuccessMessage(
-          'Database exported successfully',
-        );
-      } catch (
-        error
-      ) {
-        console.error(
-          error,
-        );
-
-        setErrorMessage(
-          'Export failed',
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-  const confirmImport =
-    async () => {
-      try {
-        setActionLoading(
-          true,
-        );
-
-        const imported =
-          await importDatabase();
-
-        if (!imported) {
-          return;
-        }
-
-        setSuccessMessage(
-          'Database imported successfully. Please restart the app.',
-        );
-
-        setImportConfirmOpen(
-          false,
-        );
-      } catch (
-        error
-      ) {
-        console.error(
-          error,
-        );
-
-        setErrorMessage(
-          'Import failed',
-        );
-      } finally {
-        setActionLoading(
-          false,
-        );
-      }
-    };
+      alert(
+        'Restore failed',
+      );
+    } finally {
+      setRestoringBackupId(
+        null,
+      );
+    }
+  }
 
   return (
     <AppLayout>
       <div className="space-y-6">
         <PageHeader
           title="Settings"
-          subtitle="Backups and database tools"
+          subtitle="Cloud backup and restore"
         />
 
         {errorMessage && (
@@ -355,6 +182,7 @@ export default function SettingsPage() {
                 }
               </span>
 
+
               <button
                 onClick={() =>
                   setSuccessMessage(
@@ -371,276 +199,104 @@ export default function SettingsPage() {
 
         <Card>
           <div className="flex flex-wrap gap-3">
-            <Button
-              onClick={
-                handleBackup
-              }
-              disabled={
-                loading
-              }
-            >
-              {loading
-                ? 'Creating...'
-                : 'Create Backup'}
-            </Button>
 
+
+            <Button
+              onClick={async () => {
+                try {
+                  await createCloudBackup();
+                  await handleLoadBackups();
+
+                  setSuccessMessage(
+                    'Cloud backup created successfully',
+                  );
+                } catch (
+                error
+                ) {
+                  console.error(
+                    error,
+                  );
+
+                  setSuccessMessage(
+                    'Backup failed',
+                  );
+                }
+              }}
+            >
+              Backup Now
+            </Button>
             <Button
               variant="secondary"
-              onClick={
-                handleExport
-              }
               disabled={
-                loading
-              }
-            >
-              Export Database
-            </Button>
-
-            <Button
-              variant="secondary"
-              onClick={() =>
-                setImportConfirmOpen(
-                  true,
-                )
-              }
-              disabled={
-                loading
-              }
-            >
-              Import Database
-            </Button>
-          </div>
-        </Card>
-
-        <Card>
-          <h2 className="text-xl font-semibold mb-4">
-            Existing Backups
-          </h2>
-
-          <div className="space-y-3">
-            {backups.map(
-              (
-                backup,
-              ) => (
-                <div
-                  key={
-                    backup.path
-                  }
-                  className="flex items-center justify-between border rounded-2xl p-4"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {
-                        backup.name
-                      }
-                    </p>
-
-                    <p className="text-sm text-slate-500 break-all">
-                      {
-                        backup.path
-                      }
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        setRestoreTarget(
-                          backup,
-                        )
-                      }
-                    >
-                      Restore
-                    </Button>
-
-                    <Button
-                      variant="danger"
-                      onClick={() =>
-                        setDeleteTarget(
-                          backup,
-                        )
-                      }
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              ),
-            )}
-
-            {backups.length ===
-              0 && (
-              <div className="text-slate-500">
-                No backups found
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* DELETE MODAL */}
-      <Modal
-        open={!!deleteTarget}
-        title="Delete Backup"
-        onClose={() =>
-          setDeleteTarget(
-            null,
-          )
-        }
-      >
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-            <p className="font-semibold text-red-700 mb-2">
-              Confirm Delete
-            </p>
-
-            <p className="text-sm text-slate-700 break-all">
-              {
-                deleteTarget?.name
-              }
-            </p>
-          </div>
-
-          <p className="text-sm text-slate-500">
-            This backup will be permanently deleted.
-          </p>
-
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="secondary"
-              onClick={() =>
-                setDeleteTarget(
-                  null,
-                )
-              }
-            >
-              Cancel
-            </Button>
-
-            <Button
-              variant="danger"
-              disabled={
-                actionLoading
+                loadingBackups
               }
               onClick={
-                confirmDelete
+                handleLoadBackups
               }
             >
-              {actionLoading
-                ? 'Deleting...'
-                : 'Delete Backup'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* RESTORE MODAL */}
-      <Modal
-        open={!!restoreTarget}
-        title="Restore Backup"
-        onClose={() =>
-          setRestoreTarget(
-            null,
-          )
-        }
-      >
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
-            <p className="font-semibold text-yellow-700 mb-2">
-              Restore Confirmation
-            </p>
-
-            <p className="text-sm text-slate-700 break-all">
-              {
-                restoreTarget?.name
-              }
-            </p>
-          </div>
-
-          <p className="text-sm text-slate-500">
-            Current database will be replaced with this backup.
-          </p>
-
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="secondary"
-              onClick={() =>
-                setRestoreTarget(
-                  null,
-                )
-              }
-            >
-              Cancel
-            </Button>
-
-            <Button
-              disabled={
-                actionLoading
-              }
-              onClick={
-                confirmRestore
-              }
-            >
-              {actionLoading
-                ? 'Restoring...'
+              {loadingBackups
+                ? 'Loading...'
                 : 'Restore Backup'}
             </Button>
+
           </div>
-        </div>
-      </Modal>
+          {cloudBackups.length >
+            0 && (
+              <div className="mt-4 rounded-2xl border border-slate-200">
+                {cloudBackups.map(
+                  (
+                    backup,
+                  ) => (
+                    <div
+                      key={
+                        backup.id
+                      }
+                      className="flex items-center justify-between p-4 border-b"
+                    >
+                      <div>
+                        <div className="font-medium">
+                          {new Date(
+                            backup.created_at,
+                          ).toLocaleString()}
+                        </div>
 
-      {/* IMPORT MODAL */}
-      <Modal
-        open={
-          importConfirmOpen
-        }
-        title="Import Database"
-        onClose={() =>
-          setImportConfirmOpen(
-            false,
-          )
-        }
-      >
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-            <p className="font-semibold text-red-700 mb-2">
-              Dangerous Action
-            </p>
+                        <div className="text-xs text-slate-500">
+                          Size:{' '}
+                          {
+                            backup.backup_size
+                          }{' '}
+                          bytes
+                        </div>
+                      </div>
 
-            <p className="text-sm text-slate-700">
-              Importing a database will replace the current database entirely.
-            </p>
-          </div>
+                      <Button
+                        variant="danger"
+                        disabled={
+                          restoringBackupId ===
+                          backup.id
+                        }
+                        onClick={() =>
+                          handleCloudRestore(
+                            backup.id,
+                          )
+                        }
+                      >
+                        {restoringBackupId ===
+                          backup.id
+                          ? 'Restoring...'
+                          : 'Restore'}
+                      </Button>
+                    </div>
+                  ),
+                )}
+              </div>
+            )}
+        </Card>
 
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="secondary"
-              onClick={() =>
-                setImportConfirmOpen(
-                  false,
-                )
-              }
-            >
-              Cancel
-            </Button>
 
-            <Button
-              variant="danger"
-              disabled={
-                actionLoading
-              }
-              onClick={
-                confirmImport
-              }
-            >
-              {actionLoading
-                ? 'Importing...'
-                : 'Import Database'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      </div>
+
+
     </AppLayout>
   );
 }

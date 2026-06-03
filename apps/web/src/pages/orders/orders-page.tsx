@@ -334,12 +334,15 @@ editableUnitPrice:
     }
   }
 
+
   async function handleConfirmFulfillment() {
     if (
       !selectedOrder
     ) {
       return;
     }
+    let fullyFulfilled =
+        true;
 
     try {
       setSaving(true);
@@ -400,6 +403,7 @@ editableUnitPrice:
 
      try {
   await updateRetailerOrderItems(
+    
     fulfilledItems.map(
       (
         item,
@@ -413,10 +417,9 @@ editableUnitPrice:
       }),
     ),
   );
-
-  let fullyFulfilled =
-    true;
-
+fullyFulfilled =
+  true;
+  
   for (const item of fulfillmentItems) {
     const totalFulfilled =
       item.alreadyFulfilledQuantity +
@@ -450,31 +453,8 @@ editableUnitPrice:
   );
 }
 
-      let fullyFulfilled =
-        true;
-
-      for (const item of fulfillmentItems) {
-        const totalFulfilled =
-          item.alreadyFulfilledQuantity +
-          item.fulfillQuantity;
-
-        if (
-          totalFulfilled <
-          item.originalRequestedQuantity
-        ) {
-          fullyFulfilled =
-            false;
-
-          break;
-        }
-      }
-
-      await updateRetailerOrderStatus(
-        selectedOrder.id,
-        fullyFulfilled
-          ? 'FULFILLED'
-          : 'PARTIAL',
-      );
+      
+      
 
       setSuccessMessage(
         fullyFulfilled

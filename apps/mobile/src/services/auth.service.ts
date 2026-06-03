@@ -29,13 +29,49 @@ export async function signInRetailer(
   } = await supabase.auth.signInWithPassword(
     {
       email,
-
       password,
     },
   );
 
   if (error) {
     throw error;
+  }
+
+  const {
+    data: retailer,
+    error: retailerError,
+  } = await supabase
+    .from(
+      'retailers',
+    )
+    .select(
+      'id, disabled'
+    )
+    .eq(
+      'auth_user_id',
+      data.user.id,
+    )
+    .single();
+
+  if (
+    retailerError ||
+    !retailer
+  ) {
+    await supabase.auth.signOut();
+
+    throw new Error(
+      'Retailer account not found',
+    );
+  }
+
+  if (
+    retailer.disabled
+  ) {
+    await supabase.auth.signOut();
+
+    throw new Error(
+      'Retailer account disabled',
+    );
   }
 
   return data;

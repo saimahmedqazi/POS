@@ -12,8 +12,6 @@ import {
   useState,
 } from 'react';
 
-
-
 import {
   useCartStore,
 } from '../../store/cart.store';
@@ -23,8 +21,6 @@ import AppLayout from '../../layouts/app-layout';
 import {
   getProducts,
 } from '../../repositories/product.repository';
-
-
 
 import BarcodeScannerModal from '../../components/barcode-scanner-modal';
 
@@ -64,6 +60,7 @@ const safeMoney = (
   Number(
     value.toFixed(2),
   );
+
 export default function PosPage() {
   const [
     products,
@@ -71,8 +68,6 @@ export default function PosPage() {
   ] = useState<Product[]>(
     [],
   );
-
-
 
   const setQuantity =
     useCartStore(
@@ -95,7 +90,6 @@ export default function PosPage() {
     useRef<HTMLInputElement>(
       null,
     );
-
 
   const items =
     useCartStore(
@@ -132,6 +126,7 @@ export default function PosPage() {
       (state: any) =>
         state.removeItem,
     );
+
   const [
     receiptOpen,
     setReceiptOpen,
@@ -172,10 +167,61 @@ export default function PosPage() {
   ] = useState<
     'PAID' | 'CREDIT'
   >('PAID');
+
+  // CASH
+  const [
+    cashReceived,
+    setCashReceived,
+  ] = useState('');
+
+  const cashReceivedNumber =
+    Number(
+      cashReceived || 0,
+    );
+
+  const total =
+    safeMoney(
+      items.reduce(
+        (
+          sum: number,
+          item: any,
+        ) =>
+          sum +
+          safeMoney(
+            item.price *
+            item.quantity,
+          ),
+        0,
+      ),
+    );
+
+  const changeAmount =
+    paymentStatus ===
+      'PAID'
+      ? safeMoney(
+        Math.max(
+          cashReceivedNumber -
+          total,
+          0,
+        ),
+      )
+      : 0;
+
+  const remainingAmount =
+    paymentStatus ===
+      'PAID'
+      ? safeMoney(
+        Math.max(
+          total -
+          cashReceivedNumber,
+          0,
+        ),
+      )
+      : 0;
+
   const loadLocalData =
     async () => {
       try {
-        // PRODUCTS
         const localProducts =
           await getProducts();
 
@@ -213,7 +259,6 @@ export default function PosPage() {
           ),
         );
 
-
         const localCustomers =
           await getCustomers();
 
@@ -233,8 +278,6 @@ export default function PosPage() {
     };
 
   useEffect(() => {
-
-
     loadLocalData();
   }, []);
 
@@ -302,21 +345,87 @@ export default function PosPage() {
     products,
   ]);
 
-  const total =
-    safeMoney(
-      items.reduce(
-        (
-          sum: number,
-          item: any,
-        ) =>
-          sum +
-          safeMoney(
-            item.price *
-            item.quantity,
-          ),
-        0,
-      ),
+  useEffect(() => {
+    const handleHotkeys = (
+      e: KeyboardEvent,
+    ) => {
+      // F2 = Search
+      if (e.key === 'F2') {
+        e.preventDefault();
+
+        searchInputRef.current?.focus();
+      }
+
+      // F3 = Barcode Scanner
+      if (e.key === 'F3') {
+        e.preventDefault();
+
+        setScannerOpen(true);
+      }
+
+      // F9 = Checkout
+      if (e.key === 'F9') {
+        e.preventDefault();
+
+        if (
+          !checkoutLoading &&
+          items.length > 0
+        ) {
+          handleCheckout();
+        }
+      }
+
+      // ESC = Clear Cart
+      if (
+        e.key === 'Escape' &&
+        items.length > 0
+      ) {
+        e.preventDefault();
+
+        if (
+          confirm(
+            'Clear cart?',
+          )
+        ) {
+       clearCart();
+
+setCashReceived('');
+
+setTimeout(() => {
+  searchInputRef.current?.focus();
+}, 50);
+        }
+      }
+
+      // F11 = Fullscreen
+      if (e.key === 'F11') {
+        e.preventDefault();
+
+        if (
+          !document.fullscreenElement
+        ) {
+          document.documentElement.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      }
+    };
+
+    window.addEventListener(
+      'keydown',
+      handleHotkeys,
     );
+
+    return () =>
+      window.removeEventListener(
+        'keydown',
+        handleHotkeys,
+      );
+  }, [
+    items.length,
+    checkoutLoading,
+  ]);
+
   const filteredProducts =
     useMemo(() => {
       const query =
@@ -360,6 +469,7 @@ export default function PosPage() {
     if (!match) {
       return;
     }
+
     if (
       match.quantity <= 0
     ) {
@@ -369,6 +479,7 @@ export default function PosPage() {
 
       return;
     }
+
     addItem({
       productId:
         match.id,
@@ -410,10 +521,25 @@ export default function PosPage() {
         return;
       }
 
+      // CASH VALIDATION
+      if (
+        paymentStatus ===
+        'PAID' &&
+        cashReceivedNumber <
+        total
+      ) {
+        alert(
+          'Insufficient cash received',
+        );
+
+        return;
+      }
+
       try {
         setCheckoutLoading(
           true,
         );
+
         const latestProducts =
           await getProducts();
 
@@ -486,6 +612,7 @@ export default function PosPage() {
 
           paymentStatus,
         };
+
         for (const item of items) {
           if (
             !Number.isFinite(
@@ -512,110 +639,107 @@ export default function PosPage() {
             return;
           }
         }
-        // SAVE LOCALLY
-       // SAVE LOCALLY
-await createLocalSale(
-  salePayload,
-);
 
-// IMPORTANT
-setCheckoutLoading(
-  false,
-);
+        await createLocalSale(
+          salePayload,
+        );
 
-setTimeout(() => {
-  searchInputRef.current?.focus();
-}, 0);
+        setCheckoutLoading(
+          false,
+        );
 
-// REFRESH PRODUCTS ONLY
-const refreshedProducts =
-  await getProducts();
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 0);
 
-setProducts(
-  (
-    refreshedProducts as any[]
-  ).map(
-    (
-      product: any,
-    ) => ({
-      id: product.id,
+        const refreshedProducts =
+          await getProducts();
 
-      name:
-        product.name,
+        setProducts(
+          (
+            refreshedProducts as any[]
+          ).map(
+            (
+              product: any,
+            ) => ({
+              id: product.id,
 
-      salePrice:
-        Number(
-          product.sale_price ||
-            0,
-        ),
+              name:
+                product.name,
 
-      sku:
-        product.sku || '',
+              salePrice:
+                Number(
+                  product.sale_price ||
+                  0,
+                ),
 
-      barcode:
-        product.barcode ||
-            '',
+              sku:
+                product.sku || '',
 
-      quantity:
-        Number(
-          product.quantity ||
-            0,
-        ),
-    }),
-  ),
-);
+              barcode:
+                product.barcode ||
+                '',
 
-// SAVE RECEIPT DATA BEFORE CLEARING
-const receiptData = [
-  ...items,
-];
+              quantity:
+                Number(
+                  product.quantity ||
+                  0,
+                ),
+            }),
+          ),
+        );
 
-const receiptTotal =
-  total;
+        const receiptData = [
+          ...items,
+        ];
 
-// RESET UI FAST
-clearCart();
+        const receiptTotal =
+          total;
 
-setSelectedCustomerId(
-  '',
-);
+        clearCart();
 
-setPaymentStatus(
-  'PAID',
-);
+        setSelectedCustomerId(
+          '',
+        );
 
-setSearch('');
+        setPaymentStatus(
+          'PAID',
+        );
 
-// SHOW RECEIPT
-setReceiptItems(
-  receiptData,
-);
+        setSearch('');
 
-setReceiptTotal(
-  receiptTotal,
-);
+        setCashReceived(
+          '',
+        );
 
-setReceiptOpen(
-  true,
-);
-       
+        setReceiptItems(
+          receiptData,
+        );
 
+        setReceiptTotal(
+          receiptTotal,
+        );
+
+        setReceiptOpen(
+          true,
+        );
       } catch (
       error
       ) {
         console.error(
           error,
         );
-        setCheckoutLoading(
-    false,
-  );
 
+        setCheckoutLoading(
+          false,
+        );
 
         alert(
           error instanceof Error
             ? error.message
             : 'Failed to complete sale.',
         );
+
         setTimeout(() => {
           searchInputRef.current?.focus();
         }, 0);
@@ -649,6 +773,7 @@ setReceiptOpen(
 
       const stock =
         match.quantity || 0;
+
       if (stock <= 0) {
         alert(
           'Out of stock',
@@ -681,7 +806,8 @@ setReceiptOpen(
     return (
       <AppLayout>
         <div>
-          Loading products...
+          Loading
+          products...
         </div>
       </AppLayout>
     );
@@ -689,29 +815,55 @@ setReceiptOpen(
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="h-[calc(100vh-100px)] flex flex-col">
         <PageHeader
           title="POS Terminal"
           subtitle="Cashier workspace"
+          
         />
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2">
-            <Card>
-              <div className="flex justify-end mb-4">
-                <Button
-                  disabled={
-                    checkoutLoading ||
-                    scannerOpen
-                  }
-                  onClick={() =>
-                    setScannerOpen(
-                      true,
-                    )
-                  }
-                >
-                  Scan Barcode
-                </Button>
+        <div className="grid flex-1 min-h-0 grid-cols-1 xl:grid-cols-3 gap-2">
+          {/* PRODUCTS */}
+          <div className="xl:col-span-2 min-h-0">
+            <Card className="h-full flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-sm text-slate-500">
+                  {
+                    filteredProducts.length
+                  }{' '}
+                  products
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      if (
+                        !document.fullscreenElement
+                      ) {
+                        document.documentElement.requestFullscreen();
+                      } else {
+                        document.exitFullscreen();
+                      }
+                    }}
+                  >
+                    Full Screen
+                  </Button>
+
+                  <Button
+                    disabled={
+                      checkoutLoading ||
+                      scannerOpen
+                    }
+                    onClick={() =>
+                      setScannerOpen(
+                        true,
+                      )
+                    }
+                  >
+                    Scan Barcode
+                  </Button>
+                </div>
+
               </div>
 
               <div className="mb-6">
@@ -733,13 +885,15 @@ setReceiptOpen(
                   }
                 />
               </div>
+
               {filteredProducts.length ===
                 0 && (
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
                     No products found
                   </div>
                 )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div className="flex-1 overflow-y-auto">
+              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                 {filteredProducts.map(
                   (
                     product,
@@ -748,52 +902,45 @@ setReceiptOpen(
                       key={
                         product.id
                       }
-                      className="border border-slate-100 hover:shadow-md transition"
+                      className="border border-slate-100 hover:shadow-md transition p-3"
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="text-lg font-semibold">
+                          <h3 className="font-semibold">
                             {
                               product.name
                             }
                           </h3>
 
-                          <p className="text-slate-500 text-sm mt-1">
-                            SKU:{' '}
-                            {
-                              product.sku
-                            }
-                          </p>
 
-                          <p className="text-slate-500 text-sm">
-                            Barcode:{' '}
-                            {
-                              product.barcode
-                            }
-                          </p>
                         </div>
 
                         <div className="flex flex-col items-end gap-2">
                           <Badge
                             variant={
-                              product.quantity > 0
-                                ? product.quantity <= 5
+                              product.quantity >
+                                0
+                                ? product.quantity <=
+                                  5
                                   ? 'warning'
                                   : 'success'
                                 : 'danger'
                             }
                           >
-                            {product.quantity > 0
-                              ? product.quantity <= 5
+                            {product.quantity >
+                              0
+                              ? product.quantity <=
+                                5
                                 ? 'Low Stock'
                                 : 'In Stock'
                               : 'Out of Stock'}
                           </Badge>
 
                           <div className="text-sm font-semibold text-slate-600">
-                            Qty:
-                            {' '}
-                            {product.quantity}
+                            Qty:{' '}
+                            {
+                              product.quantity
+                            }
                           </div>
                         </div>
                       </div>
@@ -812,7 +959,8 @@ setReceiptOpen(
                           }
                           onClick={() => {
                             const stock =
-                              product.quantity || 0;
+                              product.quantity ||
+                              0;
 
                             if (
                               stock <= 0
@@ -846,13 +994,15 @@ setReceiptOpen(
                     </Card>
                   ),
                 )}
+                </div>
               </div>
             </Card>
           </div>
 
+          {/* CART */}
           <div>
-            <Card className="sticky top-6">
-              <h2 className="text-2xl font-bold mb-6">
+            <Card className="h-full flex flex-col">
+              <h2 className="text-2xl font-bold mb-3">
                 Cart
               </h2>
 
@@ -863,7 +1013,7 @@ setReceiptOpen(
                 </p>
               ) : (
                 <>
-                  <div className="space-y-4">
+                  <div className="flex-1 overflow-y-auto">
                     {items.map(
                       (
                         item: any,
@@ -872,18 +1022,27 @@ setReceiptOpen(
                           key={
                             item.productId
                           }
-                          className="border-b border-slate-200 pb-4"
+                          className="border border-slate-200 rounded-2xl p-3"
                         >
                           <div className="flex justify-between">
-                            <h4 className="font-semibold">
-                              {
-                                item.name
-                              }
-                            </h4>
+                            <div>
+                              <h4 className="font-semibold">
+                                {
+                                  item.name
+                                }
+                              </h4>
+
+                              <p className="text-slate-500 text-sm mt-1">
+                                Rs.{' '}
+                                {
+                                  item.price
+                                }
+                              </p>
+                            </div>
 
                             <Button
                               variant="danger"
-                              className="px-3 py-1"
+                              className="px-1 py-1"
                               disabled={
                                 checkoutLoading
                               }
@@ -893,24 +1052,18 @@ setReceiptOpen(
                                 )
                               }
                             >
-                              ×
+                              x
                             </Button>
                           </div>
 
-                          <p className="text-slate-500 text-sm mt-1">
-                            Rs.{' '}
-                            {
-                              item.price
-                            }
-                          </p>
-
-                          <div className="flex items-center gap-3 mt-3">
+                          <div className="flex items-center gap-3 mt-2">
                             <Button
                               variant="secondary"
                               className="w-10 h-10 p-0 text-lg font-bold"
                               disabled={
                                 checkoutLoading ||
-                                item.quantity <= 1
+                                item.quantity <=
+                                1
                               }
                               onClick={() =>
                                 decreaseQuantity(
@@ -927,21 +1080,30 @@ setReceiptOpen(
                               }
                               type="number"
                               min="1"
-                              max={item.stock}
-                              value={item.quantity}
-                              onChange={(e) => {
+                              max={
+                                item.stock
+                              }
+                              value={
+                                item.quantity
+                              }
+                              onChange={(
+                                e,
+                              ) => {
                                 const raw =
-                                  e.target.value;
+                                  e.target
+                                    .value;
 
-                                // EMPTY INPUT
-                                if (!raw.trim()) {
+                                if (
+                                  !raw.trim()
+                                ) {
                                   return;
                                 }
 
                                 const value =
-                                  Number(raw);
+                                  Number(
+                                    raw,
+                                  );
 
-                                // INVALID
                                 if (
                                   !Number.isFinite(
                                     value,
@@ -950,13 +1112,14 @@ setReceiptOpen(
                                   return;
                                 }
 
-                                // INTEGER ONLY
                                 const sanitized =
-                                  Math.floor(value);
+                                  Math.floor(
+                                    value,
+                                  );
 
-                                // MINIMUM
                                 if (
-                                  sanitized < 1
+                                  sanitized <
+                                  1
                                 ) {
                                   setQuantity(
                                     item.productId,
@@ -966,7 +1129,6 @@ setReceiptOpen(
                                   return;
                                 }
 
-                                // STOCK LIMIT
                                 if (
                                   sanitized >
                                   item.stock
@@ -1004,10 +1166,11 @@ setReceiptOpen(
                               +
                             </Button>
 
-                            <div className="ml-2 text-xs text-slate-500">
-                              Stock:
-                              {' '}
-                              {item.stock}
+                            <div className="ml-auto text-xs text-slate-500">
+                              Stock:{' '}
+                              {
+                                item.stock
+                              }
                             </div>
                           </div>
                         </div>
@@ -1015,24 +1178,31 @@ setReceiptOpen(
                     )}
                   </div>
 
-                  <div className="border-t pt-4 mt-6 space-y-4">
+                  <div className="border-t pt-5 mt-6 space-y-4">
+                    {/* CUSTOMER */}
                     <div>
                       <label className="block mb-2 font-medium">
                         Customer
                       </label>
 
                       <select
-                        disabled={checkoutLoading}
+                        disabled={
+                          checkoutLoading
+                        }
                         value={
                           selectedCustomerId
                         }
-                        onChange={(e) => {
+                        onChange={(
+                          e,
+                        ) => {
                           setSelectedCustomerId(
-                            e.target.value,
+                            e.target
+                              .value,
                           );
 
                           if (
-                            !e.target.value
+                            !e.target
+                              .value
                           ) {
                             setPaymentStatus(
                               'PAID',
@@ -1042,7 +1212,8 @@ setReceiptOpen(
                         className="w-full border border-slate-200 rounded-2xl p-3 bg-white"
                       >
                         <option value="">
-                          Walk-in Customer
+                          Walk-in
+                          Customer
                         </option>
 
                         {customers.map(
@@ -1066,9 +1237,11 @@ setReceiptOpen(
                       </select>
                     </div>
 
+                    {/* PAYMENT */}
                     <div>
                       <label className="block mb-2 font-medium">
-                        Payment Type
+                        Payment
+                        Type
                       </label>
 
                       <div className="flex gap-4 bg-slate-100 p-3 rounded-2xl">
@@ -1111,6 +1284,7 @@ setReceiptOpen(
                               )
                             }
                           />
+
                           <span>
                             Credit
                           </span>
@@ -1120,37 +1294,193 @@ setReceiptOpen(
                       {!selectedCustomerId && (
                         <p className="text-sm text-slate-500 mt-2">
                           Credit only
-                          available for
+                          available
+                          for
                           registered
                           customers.
                         </p>
                       )}
                     </div>
-                  </div>
 
-                  <div className="mt-6 border-t pt-4">
-                    <div className="flex justify-between text-2xl font-bold">
-                      <span>
-                        Total
-                      </span>
+                    {/* TOTALS */}
+                    <div className="bg-slate-50 rounded-xl p-2 border border-slate-200 space-y-3">
+                      <div className="flex justify-between text-slate-600">
+                        <span>
+                          Items
+                        </span>
 
-                      <span>
-                        Rs. {total}
-                      </span>
+                        <span>
+                          {
+                            items.reduce(
+                              (
+                                acc: number,
+                                item: any,
+                              ) =>
+                                acc +
+                                item.quantity,
+                              0,
+                            )
+                          }
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between text-3xl font-bold">
+                        <span>
+                          Total
+                        </span>
+
+                        <span>
+                          Rs.{' '}
+                          {total}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex gap-3 mt-6">
+                    {/* CASH */}
+                    {paymentStatus ===
+                      'PAID' && (
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block mb-2 font-medium">
+                              Cash
+                              Received
+                            </label>
+
+                            <Input
+                              disabled={
+                                checkoutLoading
+                              }
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Enter cash amount"
+                              value={
+                                cashReceived
+                              }
+                              onChange={(
+                                e,
+                              ) =>
+                                setCashReceived(
+                                  e.target
+                                    .value,
+                                )
+                              }
+                              className="text-lg font-semibold"
+                            />
+                          </div>
+
+                          {/* QUICK CASH */}
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              total,
+                              total +
+                              100,
+                              total +
+                              500,
+                              total +
+                              1000,
+                            ].map(
+                              (
+                                amount,
+                                index,
+                              ) => (
+                                <button
+                                  key={
+                                    index
+                                  }
+                                  type="button"
+                                  disabled={
+                                    checkoutLoading
+                                  }
+                                  onClick={() =>
+                                    setCashReceived(
+                                      String(
+                                        safeMoney(
+                                          amount,
+                                        ),
+                                      ),
+                                    )
+                                  }
+                                  className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-sm font-medium transition"
+                                >
+                                  Rs.{' '}
+                                  {safeMoney(
+                                    amount,
+                                  )}
+                                </button>
+                              ),
+                            )}
+                          </div>
+
+                          {/* CHANGE */}
+                          <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                            <div className="flex justify-between p-4 bg-white">
+                              <span className="font-medium">
+                                Received
+                              </span>
+
+                              <span className="font-semibold">
+                                Rs.{' '}
+                                {cashReceivedNumber ||
+                                  0}
+                              </span>
+                            </div>
+
+                            <div className="border-t border-slate-200 flex justify-between p-4 bg-slate-50">
+                              <span className="font-medium">
+                                Change
+                              </span>
+
+                              <span className="text-xl font-bold text-emerald-600">
+                                Rs.{' '}
+                                {
+                                  changeAmount
+                                }
+                              </span>
+                            </div>
+
+                            {remainingAmount >
+                              0 && (
+                                <div className="border-t border-slate-200 flex justify-between p-4 bg-red-50">
+                                  <span className="font-medium text-red-700">
+                                    Remaining
+                                  </span>
+
+                                  <span className="text-lg font-bold text-red-700">
+                                    Rs.{' '}
+                                    {
+                                      remainingAmount
+                                    }
+                                  </span>
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      )}
+
+                    {/* ACTIONS */}
+                    <div className="flex gap-3 pt-2">
                       <Button
                         variant="secondary"
-                        className="flex-1"
-                        onClick={clearCart}
-                        disabled={checkoutLoading}
+                        className="flex-1 h-12"
+                       onClick={() => {
+  clearCart();
+
+  setCashReceived('');
+
+  setTimeout(() => {
+    searchInputRef.current?.focus();
+  }, 50);
+}}
+                        disabled={
+                          checkoutLoading
+                        }
                       >
                         Clear
                       </Button>
 
                       <Button
-                        className="flex-1"
+                        className="flex-[2] h-12 text-base font-semibold"
                         onClick={() => {
                           if (
                             checkoutLoading
@@ -1162,12 +1492,22 @@ setReceiptOpen(
                         }}
                         disabled={
                           checkoutLoading ||
-                          items.length === 0
+                          items.length ===
+                          0 ||
+                          (
+                            paymentStatus ===
+                            'PAID' &&
+                            cashReceivedNumber <
+                            total
+                          )
                         }
                       >
                         {checkoutLoading
                           ? 'Processing...'
-                          : 'Checkout'}
+                          : paymentStatus ===
+                            'PAID'
+                            ? 'Complete Sale'
+                            : 'Save Credit Sale'}
                       </Button>
                     </div>
                   </div>
@@ -1179,27 +1519,30 @@ setReceiptOpen(
       </div>
 
       <ReceiptModal
-        open={receiptOpen}
-        items={receiptItems}
-        total={receiptTotal}
-        onClose={() =>
-          setReceiptOpen(false)
-        }
-      />
+  open={receiptOpen}
+  items={receiptItems}
+  total={receiptTotal}
+  onClose={() => {
+    setReceiptOpen(false);
 
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 50);
+  }}
+/>
       <BarcodeScannerModal
-        open={scannerOpen}
-        onClose={() =>
-          setScannerOpen(
-            false,
-          )
-        }
+  open={scannerOpen}
+  onClose={() => {
+    setScannerOpen(false);
 
-        onScan={
-
-          handleBarcodeScan
-        }
-      />
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 50);
+  }}
+  onScan={
+    handleBarcodeScan
+  }
+/>
     </AppLayout>
   );
 }

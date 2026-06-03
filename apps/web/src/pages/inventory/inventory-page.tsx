@@ -184,6 +184,13 @@ export default function InventoryPage() {
             }),
           ),
         );
+        
+        const latestProducts =
+  await getProducts();
+
+await syncProductsToCloud(
+  latestProducts as any[],
+);
         const transactions =
   await getInventoryTransactions();
 
@@ -352,6 +359,12 @@ useEffect(() => {
 
           ...products,
         ]);
+        const latestProducts =
+  await getProducts();
+
+await syncProductsToCloud(
+  latestProducts as any[],
+);
 
         resetCreateForm();
 
@@ -463,24 +476,31 @@ useEffect(() => {
           });
 
         setProducts(
-          products.map(
-            (
-              product,
-            ) =>
-              product.id ===
-              editingProduct.id
-                ? (updated as Product)
-                : product,
-          ),
-        );
+  products.map(
+    (
+      product,
+    ) =>
+      product.id ===
+      editingProduct.id
+        ? (updated as Product)
+        : product,
+  ),
+);
 
-        setEditingProduct(
-          null,
-        );
+const latestProducts =
+  await getProducts();
 
-        setSuccessMessage(
-          'Product updated successfully',
-        );
+await syncProductsToCloud(
+  latestProducts as any[],
+);
+
+setEditingProduct(
+  null,
+);
+
+setSuccessMessage(
+  'Product updated successfully',
+);
       } catch (
         error: any
       ) {
@@ -577,33 +597,40 @@ useEffect(() => {
             adjustment,
           );
 
-        setProducts(
-          products.map(
-            (
-              product,
-            ) =>
-              product.id ===
-              editingProduct.id
-                ? (updated as Product)
-                : product,
-          ),
-        );
-        const transactions =
+       setProducts(
+  products.map(
+    (
+      product,
+    ) =>
+      product.id ===
+      editingProduct.id
+        ? (updated as Product)
+        : product,
+  ),
+);
+
+const latestProducts =
+  await getProducts();
+
+await syncProductsToCloud(
+  latestProducts as any[],
+);
+
+const transactions =
   await getInventoryTransactions();
 
 setInventoryTransactions(
   transactions as any[],
 );
 
+setEditingProduct({
+  ...editingProduct,
 
-        setEditingProduct({
-          ...editingProduct,
-
-          quantity:
-            (
-              updated as any
-            ).quantity,
-        });
+  quantity:
+    (
+      updated as any
+    ).quantity,
+});
 
         setAdjustmentQuantity(
           '',
@@ -650,6 +677,12 @@ setInventoryTransactions(
               archiveTarget.id,
           ),
         );
+        const latestProducts =
+  await getProducts();
+
+await syncProductsToCloud(
+  latestProducts as any[],
+);
 
         setSuccessMessage(
           'Product archived successfully',
@@ -989,7 +1022,7 @@ setInventoryTransactions(
             )}
           </TableBody>
         </Table>
-                  <Card className="p-6 mt-4">  //fix
+                  <Card className="p-6 mt-4"> 
   <div className="flex items-center justify-between mb-6">
     <div>
       <h2 className="text-2xl font-bold">

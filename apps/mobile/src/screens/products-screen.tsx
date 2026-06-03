@@ -9,6 +9,7 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 
 import {
@@ -27,6 +28,18 @@ import {
   useNavigation,
 } from '@react-navigation/native';
 
+import type {
+  NativeStackNavigationProp,
+} from '@react-navigation/native-stack';
+
+import type {
+  RootStackParamList,
+} from '../navigation/app-navigation';
+
+import {
+  signOutRetailer,
+} from '../services/auth.service';
+
 export default function ProductsScreen() {
   const [
     loading,
@@ -34,18 +47,23 @@ export default function ProductsScreen() {
   ] = useState(true);
 
   const [
+    refreshing,
+    setRefreshing,
+  ] = useState(false);
+
+  const [
     products,
     setProducts,
-  ] = useState<
-    Product[]
-  >([]);
+  ] = useState<Product[]>(
+    [],
+  );
 
   const [
     filteredProducts,
     setFilteredProducts,
-  ] = useState<
-    Product[]
-  >([]);
+  ] = useState<Product[]>(
+    [],
+  );
 
   const [
     search,
@@ -57,19 +75,22 @@ export default function ProductsScreen() {
       (state) =>
         state.addItem,
     );
-    const navigation =
-  useNavigation<any>();
 
-const cartItems =
-  useCartStore(
-    (state) =>
-      state.items,
-  );
+  const cartItems =
+    useCartStore(
+      (state) =>
+        state.items,
+    );
+
+  const navigation =
+    useNavigation<
+      NativeStackNavigationProp<
+        RootStackParamList
+      >
+    >();
 
   async function loadProducts() {
     try {
-      setLoading(true);
-
       const data =
         await fetchProducts();
 
@@ -84,10 +105,31 @@ const cartItems =
       error
     ) {
       console.error(
+        'Failed loading products:',
         error,
       );
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
+  async function refreshProducts() {
+    setRefreshing(true);
+
+    await loadProducts();
+  }
+
+  async function handleLogout() {
+    try {
+      await signOutRetailer();
+    } catch (
+      error
+    ) {
+      console.error(
+        'Logout failed:',
+        error,
+      );
     }
   }
 
@@ -105,7 +147,6 @@ const cartItems =
       setFilteredProducts(
         products,
       );
-
       return;
     }
 
@@ -141,22 +182,23 @@ const cartItems =
       <View
         style={{
           flex: 1,
-
           justifyContent:
             'center',
-
           alignItems:
             'center',
         }}
       >
-        <ActivityIndicator />
+        <ActivityIndicator
+          size="large"
+        />
 
         <Text
           style={{
             marginTop: 12,
           }}
         >
-          Loading products...
+          Loading
+          products...
         </Text>
       </View>
     );
@@ -166,66 +208,114 @@ const cartItems =
     <View
       style={{
         flex: 1,
-
         backgroundColor:
           '#fff',
-
         paddingTop: 60,
-
-        paddingHorizontal: 16,
+        paddingHorizontal:
+          16,
       }}
     >
       <View
-  style={{
-    flexDirection: 'row',
+        style={{
+          flexDirection:
+            'row',
+          justifyContent:
+            'space-between',
+          alignItems:
+            'center',
+          marginBottom:
+            20,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 28,
+            fontWeight:
+              '700',
+          }}
+        >
+          Products
+        </Text>
 
-    justifyContent:
-      'space-between',
+        <View
+          style={{
+            flexDirection:
+              'row',
+            gap: 8,
+          }}
+        >
+          <Text
+            onPress={() =>
+              navigation.navigate(
+                'Orders',
+              )
+            }
+            style={{
+              backgroundColor:
+                '#2563eb',
+              color: '#fff',
+              paddingHorizontal:
+                14,
+              paddingVertical:
+                10,
+              borderRadius:
+                12,
+              fontWeight:
+                '700',
+            }}
+          >
+            Orders
+          </Text>
 
-    alignItems:
-      'center',
+          <Text
+            onPress={() =>
+              navigation.navigate(
+                'Cart',
+              )
+            }
+            style={{
+              backgroundColor:
+                '#111',
+              color: '#fff',
+              paddingHorizontal:
+                14,
+              paddingVertical:
+                10,
+              borderRadius:
+                12,
+              fontWeight:
+                '700',
+            }}
+          >
+            Cart (
+            {
+              cartItems.length
+            }
+            )
+          </Text>
 
-    marginBottom: 20,
-  }}
->
-  <Text
-    style={{
-      fontSize: 28,
-
-      fontWeight:
-        '700',
-    }}
-  >
-    Products
-  </Text>
-
-  <Text
-    onPress={() =>
-      navigation.navigate(
-        'Cart',
-      )
-    }
-    style={{
-      backgroundColor:
-        '#111',
-
-      color: '#fff',
-
-      paddingHorizontal: 16,
-
-      paddingVertical: 10,
-
-      borderRadius: 12,
-
-      fontWeight:
-        '700',
-    }}
-  >
-    Cart (
-    {cartItems.length})
-  </Text>
-</View>
-      
+          <Text
+            onPress={
+              handleLogout
+            }
+            style={{
+              backgroundColor:
+                '#dc2626',
+              color: '#fff',
+              paddingHorizontal:
+                14,
+              paddingVertical:
+                10,
+              borderRadius:
+                12,
+              fontWeight:
+                '700',
+            }}
+          >
+            Logout
+          </Text>
+        </View>
+      </View>
 
       <TextInput
         placeholder="Search products"
@@ -235,15 +325,13 @@ const cartItems =
         }
         style={{
           borderWidth: 1,
-
           borderColor:
             '#ddd',
-
-          borderRadius: 12,
-
+          borderRadius:
+            12,
           padding: 14,
-
-          marginBottom: 16,
+          marginBottom:
+            16,
         }}
       />
 
@@ -254,27 +342,34 @@ const cartItems =
         keyExtractor={(
           item,
         ) => item.id}
+        refreshControl={
+          <RefreshControl
+            refreshing={
+              refreshing
+            }
+            onRefresh={
+              refreshProducts
+            }
+          />
+        }
         renderItem={({
           item,
         }) => (
           <View
             style={{
               borderWidth: 1,
-
               borderColor:
                 '#eee',
-
-              borderRadius: 16,
-
+              borderRadius:
+                16,
               padding: 16,
-
-              marginBottom: 12,
+              marginBottom:
+                12,
             }}
           >
             <Text
               style={{
                 fontSize: 16,
-
                 fontWeight:
                   '600',
               }}
@@ -282,26 +377,27 @@ const cartItems =
               {item.name}
             </Text>
 
-            {item.sku ? (
+            {!!item.sku && (
               <Text
                 style={{
                   color:
                     '#666',
-
-                  marginTop: 4,
+                  marginTop:
+                    4,
                 }}
               >
                 SKU:{' '}
-                {item.sku}
+                {
+                  item.sku
+                }
               </Text>
-            ) : null}
+            )}
 
             <Text
               style={{
-                marginTop: 10,
-
+                marginTop:
+                  10,
                 fontSize: 18,
-
                 fontWeight:
                   '700',
               }}
@@ -314,50 +410,44 @@ const cartItems =
               )}
             </Text>
 
-            <View
+            <Text
+              onPress={() =>
+                addItem(
+                  item,
+                )
+              }
               style={{
-                marginTop: 14,
+                backgroundColor:
+                  '#111',
+                color: '#fff',
+                marginTop:
+                  14,
+                paddingVertical:
+                  12,
+                textAlign:
+                  'center',
+                borderRadius:
+                  12,
+                fontWeight:
+                  '600',
               }}
             >
-              <Text
-                onPress={() =>
-                  addItem(
-                    item,
-                  )
-                }
-                style={{
-                  backgroundColor:
-                    '#111',
-
-                  color: '#fff',
-
-                  paddingVertical: 12,
-
-                  textAlign:
-                    'center',
-
-                  borderRadius: 12,
-
-                  fontWeight:
-                    '600',
-                }}
-              >
-                Add To Cart
-              </Text>
-            </View>
+              Add To Cart
+            </Text>
           </View>
         )}
         ListEmptyComponent={
           <View
             style={{
-              paddingTop: 80,
-
+              paddingTop:
+                80,
               alignItems:
                 'center',
             }}
           >
             <Text>
-              No products found
+              No products
+              found
             </Text>
           </View>
         }

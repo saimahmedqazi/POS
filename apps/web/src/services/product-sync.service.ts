@@ -18,19 +18,26 @@ export async function syncProductsToCloud(
         barcode:
           product.barcode,
 
-        sku: product.sku,
+        sku:
+          product.sku,
 
         sale_price:
           Number(
             product.sale_price ||
-              product.salePrice ||
-              0,
+            product.salePrice ||
+            0,
           ),
 
         quantity:
           Number(
             product.quantity ||
-              0,
+            0,
+          ),
+
+        available_quantity:
+          Number(
+            product.quantity ||
+            0,
           ),
 
         active: true,
@@ -49,7 +56,8 @@ export async function syncProductsToCloud(
     .upsert(
       payload,
       {
-        onConflict: 'sku',
+        onConflict:
+          'id',
       },
     );
 
