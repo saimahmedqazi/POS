@@ -20,6 +20,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9c385a7f-1bb0-484a-acda-dae95154dbb1"
+      }
+    },
+    "owner": "thewalking_sam"
   }
 }
