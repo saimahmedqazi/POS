@@ -155,18 +155,6 @@ export async function createProduct(
   );
 
   return {
-    id,
-
-    name,
-
-    sku,
-
-    barcode,
-
-    salePrice,
-
-    costPrice,
-
     quantity,
   };
 }

@@ -114,6 +114,30 @@ export async function receiveCustomerPayment(
       customerId,
     ],
   );
+
+  await db.execute(
+    `
+    INSERT INTO ledger_entries (
+      id,
+      customer_id,
+      type,
+      amount,
+      reference_type,
+      reference_id,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      crypto.randomUUID(),
+      customerId,
+      'CREDIT',
+      amount,
+      'PAYMENT',
+      crypto.randomUUID(),
+      new Date().toISOString(),
+    ],
+  );
 }
 
 export async function enableCustomerMobileAccess(
