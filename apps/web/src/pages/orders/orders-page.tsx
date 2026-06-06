@@ -838,7 +838,7 @@ const finalInvoiceTotal =
   )}
 </div>
 
-            <div className="rounded-2xl bg-slate-100 p-4">
+            <div className="rounded-2xl bg-surface p-4 border border-border">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">
                   Total
@@ -901,7 +901,7 @@ const finalInvoiceTotal =
                         }
                       </div>
 
-                      <div className="text-sm text-slate-500 mt-2 space-y-1">
+                      <div className="text-sm text-muted-foreground mt-2 space-y-1">
                         <div>
                           Requested:{' '}
                           {
@@ -919,7 +919,7 @@ const finalInvoiceTotal =
                     </div>
 
                     <div className="w-28">
-                      <label className="text-xs text-slate-500 mb-1 block">
+                      <label className="text-xs text-muted-foreground mb-1 block">
                         Fulfill Qty
                       </label>
 
@@ -968,11 +968,11 @@ const finalInvoiceTotal =
                               ),
                           );
                         }}
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+                        className="w-full rounded-xl border border-border bg-background text-foreground px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50"
                       />
                     </div>
                     <div className="w-32">
-  <label className="text-xs text-slate-500 mb-1 block">
+  <label className="text-xs text-muted-foreground mb-1 block">
     Unit Price
   </label>
 
@@ -1020,7 +1020,7 @@ const finalInvoiceTotal =
               ),
             )}
 
-          <div className="rounded-2xl bg-slate-100 p-4 space-y-4">
+          <div className="rounded-2xl bg-surface/50 border border-border p-4 space-y-4">
   <div className="flex items-center justify-between">
     <span className="font-semibold">
       Fulfillment Total
@@ -1059,10 +1059,10 @@ const finalInvoiceTotal =
               ),
         );
       }}
-      className="w-full rounded-xl border border-slate-300 px-3 py-3 outline-none focus:border-blue-500"
+      className="w-full rounded-xl border border-border bg-background text-foreground px-3 py-3 outline-none focus:ring-2 focus:ring-primary/50"
     />
 
-    <div className="text-xs text-slate-500 mt-2">
+    <div className="text-xs text-muted-foreground mt-2">
       Leave empty to use calculated fulfillment total
     </div>
   </div>

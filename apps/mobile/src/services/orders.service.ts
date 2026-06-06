@@ -190,12 +190,60 @@ export async function placeOrder() {
 
 }
 export async function getMyOrders() {
+  const session =
+    await getCurrentSession();
+
+  if (!session) {
+    throw new Error(
+      'Not authenticated',
+    );
+  }
+
+  const {
+    data: retailer,
+    error:
+      retailerError,
+  } = await supabase
+    .from(
+      'retailers',
+    )
+    .select(
+      'id'
+    )
+    .eq(
+      'auth_user_id',
+      session.user.id,
+    )
+    .single();
+
+  if (
+    retailerError ||
+    !retailer
+  ) {
+    throw new Error(
+      'Retailer account not found',
+    );
+  }
+
   const {
     data,
     error,
   } = await supabase
     .from('retailer_orders')
-    .select('*')
+    .select(`
+      *,
+      items: retailer_order_items (
+        id,
+        product_name,
+        requested_quantity,
+        unit_price,
+        subtotal
+      )
+    `)
+    .eq(
+      'retailer_id',
+      retailer.id,
+    )
     .order('created_at', {
       ascending: false,
     });
@@ -205,7 +253,7 @@ export async function getMyOrders() {
   }
 
   console.log(
-    'ALL ORDERS:',
+    'MY ORDERS:',
     data,
   );
 

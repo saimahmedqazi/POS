@@ -27,6 +27,10 @@ import {
   getDashboardStats,
 } from '../../repositories/dashboard.repository';
 
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
+
 type DailySales = {
   totalRevenue: number;
 
@@ -103,6 +107,8 @@ export default function DashboardPage() {
     defaultDailySales,
   );
 
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+
   const [
     profitSummary,
     setProfitSummary,
@@ -126,6 +132,11 @@ export default function DashboardPage() {
     error,
     setError,
   ] = useState('');
+
+  const [
+    ledgerBalance,
+    setLedgerBalance,
+  ] = useState(0);
 
   const fetchDashboard =
     async () => {
@@ -153,6 +164,10 @@ export default function DashboardPage() {
             localStats.totalSales,
           );
 
+        setLedgerBalance(
+          safeNumber((localStats as any).totalReceivables)
+        );
+
         setDailySales({
           totalRevenue:
             revenue,
@@ -166,6 +181,23 @@ export default function DashboardPage() {
                 totalSales
               : 0,
         });
+
+        // Format weekly dates (always show last 7 days)
+        const past7Days = Array.from({ length: 7 }).map((_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() - (6 - i));
+          return d;
+        });
+
+        const formattedWeekly = past7Days.map(dateObj => {
+          const dateStr = dateObj.toISOString().split('T')[0];
+          const found = (localStats.weeklySales as any[])?.find(s => s.date === dateStr);
+          return {
+            name: dateObj.toLocaleDateString('en-US', { weekday: 'short' }),
+            revenue: found ? safeNumber(found.revenue) : 0
+          };
+        });
+        setWeeklyData(formattedWeekly);
 
         // PRODUCTS
         const products =
@@ -222,24 +254,24 @@ export default function DashboardPage() {
             0,
           );
 
-        const grossProfit =
-          totalSaleValue -
-          totalCostValue;
+        // Actual Gross Profit from today's sales
+        const todayCost = safeNumber((localStats as any).todayCost);
+        const grossProfit = revenue - todayCost;
 
         setProfitSummary({
           totalRevenue:
             revenue,
 
           totalCost:
-            totalCostValue,
+            todayCost,
 
           grossProfit,
 
           profitMargin:
-            totalSaleValue > 0
+            revenue > 0
               ? (
                   grossProfit /
-                  totalSaleValue
+                  revenue
                 ) *
                 100
               : 0,
@@ -322,11 +354,11 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm font-medium">
+                <p className="text-muted-foreground text-sm font-medium">
                   Revenue
                 </p>
 
@@ -352,7 +384,7 @@ export default function DashboardPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm font-medium">
+                <p className="text-muted-foreground text-sm font-medium">
                   Transactions
                 </p>
 
@@ -378,7 +410,7 @@ export default function DashboardPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm font-medium">
+                <p className="text-muted-foreground text-sm font-medium">
                   Gross Profit
                 </p>
 
@@ -404,7 +436,7 @@ export default function DashboardPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm font-medium">
+                <p className="text-muted-foreground text-sm font-medium">
                   Inventory Qty
                 </p>
 
@@ -424,6 +456,62 @@ export default function DashboardPage() {
               <div className="bg-orange-100 p-4 rounded-2xl">
                 <Package className="text-orange-600" />
               </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted-foreground text-sm font-medium">
+                  Ledger Receivables
+                </p>
+
+                <h2 className="text-3xl font-bold mt-3">
+                  {formatCurrency(ledgerBalance)}
+                </h2>
+
+                <div className="mt-4">
+                  <Badge variant="danger">
+                    Owed by Customers
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="bg-red-100 p-4 rounded-2xl">
+                <DollarSign className="text-red-600" />
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="mt-8">
+          <Card>
+            <h2 className="text-xl font-bold mb-6">Revenue Over Time (Last 7 Days)</h2>
+            <div className="h-[350px] w-full">
+              {weeklyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={weeklyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="name" stroke="var(--muted-fg)" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--muted-fg)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `Rs.${value}`} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '12px', color: 'var(--foreground)' }}
+                      itemStyle={{ color: 'var(--primary)' }}
+                    />
+                    <Area type="monotone" dataKey="revenue" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  No sales data available for the last 7 days.
+                </div>
+              )}
             </div>
           </Card>
         </div>

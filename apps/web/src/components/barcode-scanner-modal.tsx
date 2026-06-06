@@ -73,7 +73,7 @@ export default function BarcodeScannerModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-2xl">
+      <div className="bg-surface text-foreground rounded-2xl p-6 w-full max-w-2xl border border-border shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">
             Scan Barcode

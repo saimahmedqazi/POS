@@ -501,6 +501,32 @@ export async function archiveProduct(
   const db =
     getDatabase();
 
+  // CHECK IF PRODUCT IS IN STOCK
+  const productRows = await db.select(
+    `SELECT quantity FROM products WHERE id = ? LIMIT 1`,
+    [productId],
+  );
+  
+  if ((productRows as any[]).length === 0) {
+    throw new Error('Product not found');
+  }
+  
+  const quantity = Number((productRows as any[])[0].quantity || 0);
+  if (quantity > 0) {
+    throw new Error('Cannot delete a product that is currently in stock. Please adjust stock to 0 first.');
+  }
+
+  // CHECK FOR SALES HISTORY
+  const salesRows = await db.select(
+    `SELECT COUNT(*) as count FROM sale_items WHERE product_id = ?`,
+    [productId],
+  );
+  
+  const salesCount = Number((salesRows as any[])[0].count || 0);
+  if (salesCount > 0) {
+    throw new Error('Cannot delete a product that has past sales history, as it will break historical reports.');
+  }
+
   await db.execute(
     `
     DELETE FROM products

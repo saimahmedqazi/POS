@@ -17,16 +17,16 @@ type Props = {
 
 const variants = {
   primary:
-    'bg-slate-900 hover:bg-slate-800 text-white',
+    'bg-accent hover:bg-blue-400 text-white shadow-lg shadow-accent/20 border border-accent/50',
 
   secondary:
-    'bg-white border hover:bg-slate-50 text-slate-900',
+    'bg-surface hover:bg-surface-hover border border-border text-foreground',
 
   danger:
-    'bg-red-500 hover:bg-red-600 text-white',
+    'bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 shadow-lg shadow-red-500/5',
 
   success:
-    'bg-green-600 hover:bg-green-700 text-white',
+    'bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 shadow-lg shadow-emerald-500/5',
 };
 
 export default function Button({

@@ -27,6 +27,10 @@ import {
   AuthProvider,
 } from './context/auth-context';
 
+import {
+  ThemeProvider,
+} from './context/theme-context';
+
 import App from './App';
 
 import SetupPage from './pages/setup/setup-page';
@@ -117,8 +121,9 @@ try {
     root.render(
     <BrowserRouter>
       <ErrorBoundary>
-        <AuthProvider>
-          <Routes>
+        <ThemeProvider>
+          <AuthProvider>
+            <Routes>
             {/* SETUP */}
             <Route
               path="/setup"
@@ -185,6 +190,7 @@ try {
             />
           </Routes>
         </AuthProvider>
+        </ThemeProvider>
       </ErrorBoundary>
     </BrowserRouter>
   

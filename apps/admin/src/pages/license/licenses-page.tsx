@@ -34,8 +34,8 @@ export default function LicensesPage() {
     Record<string, ActionType | null>
   >({});
 
-  const [extensionMonths, setExtensionMonths] = useState<
-    Record<string, number>
+  const [expiryDates, setExpiryDates] = useState<
+    Record<string, string>
   >({});
 
   const [feedback, setFeedback] = useState<
@@ -63,9 +63,6 @@ export default function LicensesPage() {
     }, 2000);
   }
 
-  function getMonths(id: string) {
-    return extensionMonths[id] || 1;
-  }
 
   function isExpired(license: License) {
     if (!license.expires_at) return false;
@@ -193,34 +190,30 @@ export default function LicensesPage() {
     }
   }
 
-  async function extendLicense(license: License, months: number) {
-    if (actionLoading[license.id]) return;
+  async function updateExactExpiry(id: string, dateStr: string) {
+    if (actionLoading[id]) return;
 
     try {
-      setLoadingState(license.id, 'extend');
-
-      const baseDate = getSafeBaseDate(license);
-
-      baseDate.setMonth(baseDate.getMonth() + months);
+      setLoadingState(id, 'extend');
 
       const { error } = await supabaseAdmin
         .from('licenses')
         .update({
-          expires_at: baseDate.toISOString(),
+          expires_at: new Date(dateStr).toISOString(),
           active: true,
           status: 'ACTIVE',
         })
-        .eq('id', license.id);
+        .eq('id', id);
 
       if (error) throw error;
 
-      setMessage(license.id, `+${months} month(s)`);
+      setMessage(id, `Expiry Updated`);
 
       await loadLicenses();
     } catch (err) {
       console.error(err);
     } finally {
-      setLoadingState(license.id, null);
+      setLoadingState(id, null);
     }
   }
 
@@ -332,55 +325,37 @@ export default function LicensesPage() {
                         : 'Copy Key'}
                     </Button>
 
-                    {/* EXTENSION */}
-                    <div className="flex gap-2 items-center">
-                      <Button
-                        variant="secondary"
-                        disabled={!!loadingAction}
-                        onClick={() =>
-                          setExtensionMonths((p) => ({
-                            ...p,
-                            [license.id]: Math.max(
-                              1,
-                              getMonths(license.id) - 1,
-                            ),
-                          }))
-                        }
-                      >
-                        -
-                      </Button>
-
-                      <div className="flex-1 text-center text-sm">
-                        {getMonths(license.id)} Month(s)
-                      </div>
-
-                      <Button
-                        variant="secondary"
-                        disabled={!!loadingAction}
-                        onClick={() =>
-                          setExtensionMonths((p) => ({
-                            ...p,
-                            [license.id]:
-                              getMonths(license.id) + 1,
-                          }))
-                        }
-                      >
-                        +
-                      </Button>
-                    </div>
+                    {/* EXPIRY PICKER */}
+                    <input
+                      type="date"
+                      className="border border-border/50 px-3 py-2.5 rounded-xl text-sm bg-surface-hover text-foreground focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all w-full shadow-inner"
+                      value={
+                        expiryDates[license.id] !== undefined
+                          ? expiryDates[license.id]
+                          : license.expires_at
+                          ? new Date(license.expires_at).toISOString().split('T')[0]
+                          : ''
+                      }
+                      onChange={(e) =>
+                        setExpiryDates((prev) => ({
+                          ...prev,
+                          [license.id]: e.target.value,
+                        }))
+                      }
+                    />
 
                     <Button
-                      disabled={!!loadingAction}
+                      disabled={!!loadingAction || !expiryDates[license.id]}
                       onClick={() =>
-                        extendLicense(
-                          license,
-                          getMonths(license.id),
+                        updateExactExpiry(
+                          license.id,
+                          expiryDates[license.id]
                         )
                       }
                     >
                       {loadingAction === 'extend'
                         ? 'Processing...'
-                        : 'Extend'}
+                        : 'Set Expiry'}
                     </Button>
 
                     <Button

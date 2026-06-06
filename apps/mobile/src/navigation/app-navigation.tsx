@@ -70,8 +70,7 @@ export default function AppNavigation() {
             ProductsScreen
           }
           options={{
-            title:
-              'Products',
+            headerShown: false,
           }}
         />
 

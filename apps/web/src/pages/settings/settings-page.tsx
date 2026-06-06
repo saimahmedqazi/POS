@@ -24,10 +24,35 @@ import {
   getCloudBackupById,
   restoreCloudBackup,
 } from '../../services/cloud-restore.service';
+import { useTheme } from '../../context/theme-context';
+import Badge from '../../components/ui/badge';
+import { check } from '@tauri-apps/plugin-updater';
 
 
 
 export default function SettingsPage() {
+  const { theme, setTheme, accent, setAccent } = useTheme();
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+
+  const handleCheckUpdate = async () => {
+    try {
+      setIsCheckingUpdate(true);
+      setUpdateStatus('Checking for updates...');
+      const update = await check();
+      if (update) {
+        setUpdateStatus(`Version ${update.version} available!`);
+        // await update.downloadAndInstall();
+      } else {
+        setUpdateStatus('You are on the latest version.');
+      }
+    } catch (e: any) {
+      console.error(e);
+      setUpdateStatus('Update check failed (Is Updater configured?).');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
 
 
@@ -149,7 +174,7 @@ export default function SettingsPage() {
       <div className="space-y-6">
         <PageHeader
           title="Settings"
-          subtitle="Cloud backup and restore"
+          subtitle="Appearance, Backup and Restore"
         />
 
         {errorMessage && (
@@ -198,6 +223,69 @@ export default function SettingsPage() {
         )}
 
         <Card>
+          <h2 className="text-xl font-semibold mb-4">Appearance</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">Theme</h3>
+              <div className="flex flex-wrap gap-3">
+                {['light', 'dark', 'system'].map((t) => (
+                  <Button
+                    key={t}
+                    variant={theme === t ? 'primary' : 'secondary'}
+                    onClick={() => setTheme(t as any)}
+                    className="capitalize"
+                  >
+                    {t}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">Accent Color</h3>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { id: 'indigo', name: 'Indigo', color: 'bg-indigo-500' },
+                  { id: 'emerald', name: 'Emerald', color: 'bg-emerald-500' },
+                  { id: 'violet', name: 'Violet', color: 'bg-violet-500' },
+                  { id: 'rose', name: 'Rose', color: 'bg-rose-500' },
+                ].map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => setAccent(a.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${
+                      accent === a.id ? 'border-primary ring-2 ring-primary/20 bg-surface-hover' : 'border-border bg-surface hover:bg-surface-hover'
+                    }`}
+                  >
+                    <span className={`w-4 h-4 rounded-full ${a.color}`} />
+                    <span className="font-medium text-sm">{a.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold">System Updates</h2>
+              <p className="text-sm text-muted-foreground mt-1">Check for the latest version of POS ERP.</p>
+            </div>
+            {updateStatus && (
+              <Badge variant={updateStatus.includes('failed') ? 'danger' : 'neutral'}>
+                {updateStatus}
+              </Badge>
+            )}
+          </div>
+          <Button onClick={handleCheckUpdate} disabled={isCheckingUpdate}>
+            {isCheckingUpdate ? 'Checking...' : 'Check for Updates'}
+          </Button>
+        </Card>
+
+        <Card>
+          <h2 className="text-xl font-semibold mb-4">Cloud Backup</h2>
           <div className="flex flex-wrap gap-3">
 
 

@@ -15,20 +15,22 @@ export async function getDashboardStats() {
   const db =
     getDatabase();
 
-  // TODAY SALES
+  // TODAY SALES & COST
   const salesResult =
     await db.select(
       `
       SELECT
-        COUNT(*) as total_sales,
-        COALESCE(
-          SUM(final_amount),
-          0
-        ) as revenue
+        COUNT(id) as total_sales,
+        COALESCE(SUM(final_amount), 0) as revenue,
+        (
+          SELECT COALESCE(SUM(si.quantity * p.cost_price), 0)
+          FROM sale_items si
+          JOIN sales s ON si.sale_id = s.id
+          LEFT JOIN products p ON si.product_id = p.id
+          WHERE DATE(s.created_at, 'localtime') = DATE('now', 'localtime')
+        ) as total_cost
       FROM sales
-      WHERE DATE(created_at)
-      =
-      DATE('now', 'localtime')
+      WHERE DATE(created_at, 'localtime') = DATE('now', 'localtime')
       `,
     );
 
@@ -67,6 +69,28 @@ export async function getDashboardStats() {
       `,
     );
 
+  // WEEKLY SALES (Last 7 Days)
+  const weeklySales =
+    await db.select(
+      `
+      SELECT
+        DATE(created_at, 'localtime') as date,
+        COALESCE(SUM(final_amount), 0) as revenue
+      FROM sales
+      WHERE DATE(created_at, 'localtime') >= date('now', 'localtime', '-7 days')
+      GROUP BY DATE(created_at, 'localtime')
+      ORDER BY date ASC
+      `
+    );
+
+  const customersResult = await db.select(
+    `SELECT COUNT(*) as total_customers FROM customers`
+  );
+
+  const ledgerResult = await db.select(
+    `SELECT COALESCE(SUM(current_balance), 0) as total_receivables FROM customers`
+  );
+
   return {
     totalSales:
       safeNumber(
@@ -78,6 +102,12 @@ export async function getDashboardStats() {
       safeNumber(
         (salesResult as any[])[0]
           ?.revenue,
+      ),
+
+    todayCost:
+      safeNumber(
+        (salesResult as any[])[0]
+          ?.total_cost,
       ),
 
     totalProducts:
@@ -93,5 +123,6 @@ export async function getDashboardStats() {
       ),
 
     recentSales,
+    weeklySales,
   };
 }

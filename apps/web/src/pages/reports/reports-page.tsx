@@ -27,6 +27,12 @@ import {
   getDatabase,
 } from '../../lib/database';
 
+import {
+  PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
+
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#ec4899', '#84cc16', '#64748b'];
+
 type DailySales = {
   totalRevenue: number;
 
@@ -143,6 +149,8 @@ export default function ReportsPage() {
     setSelectedPaymentType,
   ] = useState('');
 
+  const [dateFilter, setDateFilter] = useState('today');
+
   const filteredSales =
     sales.filter(
       (sale) => {
@@ -172,6 +180,19 @@ const safeMoney = (
           const db =
             getDatabase();
 
+          let dateCondition = '';
+          let salesDateCondition = '';
+          if (dateFilter === 'today') {
+            dateCondition = "WHERE DATE(sales.created_at, 'localtime') = DATE('now', 'localtime')";
+            salesDateCondition = "WHERE DATE(s.created_at, 'localtime') = DATE('now', 'localtime')";
+          } else if (dateFilter === 'week') {
+            dateCondition = "WHERE DATE(sales.created_at, 'localtime') >= DATE('now', 'localtime', '-7 days')";
+            salesDateCondition = "WHERE DATE(s.created_at, 'localtime') >= DATE('now', 'localtime', '-7 days')";
+          } else if (dateFilter === 'month') {
+            dateCondition = "WHERE DATE(sales.created_at, 'localtime') >= DATE('now', 'localtime', 'start of month')";
+            salesDateCondition = "WHERE DATE(s.created_at, 'localtime') >= DATE('now', 'localtime', 'start of month')";
+          }
+
           // SALES
           const salesData =
             await db.select(
@@ -182,6 +203,7 @@ const safeMoney = (
               FROM sales
               LEFT JOIN customers
               ON sales.customer_id = customers.id
+              ${dateCondition}
               ORDER BY sales.created_at DESC
               `,
             );
@@ -190,7 +212,7 @@ const safeMoney = (
             salesData as Sale[],
           );
 
-          // DAILY SALES
+          // AGGREGATE SALES
           const dailyResult =
             await db.select(
               `
@@ -199,8 +221,16 @@ const safeMoney = (
                 COALESCE(
                   SUM(final_amount),
                   0
-                ) as totalRevenue
+                ) as totalRevenue,
+                (
+                  SELECT COALESCE(SUM(si.quantity * p.cost_price), 0)
+                  FROM sale_items si
+                  JOIN sales s ON si.sale_id = s.id
+                  LEFT JOIN products p ON si.product_id = p.id
+                  ${salesDateCondition}
+                ) as totalCost
               FROM sales
+              ${dateCondition}
               `,
             );
 
@@ -214,6 +244,9 @@ const safeMoney = (
               daily.totalRevenue ||
               0,
             );
+
+          const actualTotalCost = Number(daily.totalCost || 0);
+          const actualGrossProfit = totalRevenue - actualTotalCost;
 
           const totalTransactions =
             Number(
@@ -314,14 +347,14 @@ const safeMoney = (
             totalRevenue,
 
             totalCost:
-              totalCostValue,
+              actualTotalCost,
 
-            grossProfit,
+            grossProfit: actualGrossProfit,
 
             profitMargin:
               totalRevenue > 0
                 ? (
-                  grossProfit /
+                  actualGrossProfit /
                   totalRevenue
                 ) *
                 100
@@ -358,6 +391,9 @@ const topProductsResult =
     INNER JOIN products
       ON sale_items.product_id =
          products.id
+    INNER JOIN sales
+      ON sale_items.sale_id = sales.id
+    ${dateCondition}
     GROUP BY products.id
     ORDER BY totalRevenue DESC
     LIMIT 10
@@ -413,10 +449,8 @@ setTopProducts(
       };
 
   useEffect(() => {
-    
-
     loadReports();
-  }, []);
+  }, [dateFilter]);
 
   if (loading) {
     return (
@@ -444,7 +478,18 @@ setTopProducts(
   </Button>
 </div>
         <Card className="mb-6">
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4 items-center">
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="border border-border rounded-xl px-4 py-2 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/50 min-w-[150px]"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">Last 7 Days</option>
+              <option value="month">This Month</option>
+            </select>
+
             <select
               value={
                 selectedPaymentType
@@ -455,7 +500,7 @@ setTopProducts(
                     .value,
                 )
               }
-              className="border border-slate-200 rounded-2xl px-4 py-3 bg-white min-w-[180px]"
+              className="border border-border rounded-xl px-4 py-2 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/50 min-w-[150px]"
             >
               <option value="">
                 All Payments
@@ -472,7 +517,7 @@ setTopProducts(
           </div>
         </Card>
 
-        <div className="flex gap-2 flex-wrap bg-white p-2 rounded-2xl shadow-sm w-fit">
+        <div className="flex gap-2 flex-wrap bg-surface p-2 rounded-2xl shadow-sm border border-border w-fit">
           {[
             {
               key: 'sales',
@@ -557,6 +602,39 @@ setTopProducts(
                     }{' '}
                     Products
                   </Badge>
+                </div>
+
+                <div className="w-full mb-8">
+                  {topProducts.filter(p => p.totalQuantitySold > 0 || p.totalRevenue > 0).length > 0 ? (
+                    <ResponsiveContainer width="100%" height={350}>
+                      <PieChart>
+                        <Pie
+                          data={topProducts.filter(p => p.totalQuantitySold > 0 || p.totalRevenue > 0)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={120}
+                          paddingAngle={5}
+                          dataKey="totalRevenue"
+                          nameKey="productName"
+                        >
+                          {topProducts.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value) => `Rs. ${value}`}
+                          contentStyle={{ borderRadius: '12px', border: '1px solid var(--border)', backgroundColor: 'var(--surface)', color: 'var(--foreground)' }}
+                          itemStyle={{ color: 'var(--primary)' }}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                      No product sales yet.
+                    </div>
+                  )}
                 </div>
 
                 <Table>

@@ -77,16 +77,20 @@ export default function AdminLoginPage() {
     !password;
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <Card className="rounded-3xl shadow-xl p-8">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Subtle background glow */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
+
+      <div className="w-full max-w-md relative z-10">
+        <Card className="rounded-3xl p-8 backdrop-blur-xl border-border/50">
           <form onSubmit={handleSubmit}>
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-slate-900">
+              <h1 className="text-4xl font-extrabold tracking-tight text-foreground">
                 Admin Panel
               </h1>
 
-              <p className="text-slate-500 mt-2">
+              <p className="text-slate-400 mt-2 font-medium tracking-wide">
                 Secure Login
               </p>
             </div>
@@ -115,7 +119,7 @@ export default function AdminLoginPage() {
               />
 
               {error && (
-                <div className="bg-red-100 text-red-700 px-4 py-3 rounded-2xl text-sm">
+                <div className="bg-red-500/10 text-red-400 border border-red-500/20 px-4 py-3 rounded-2xl text-sm font-medium">
                   {error}
                 </div>
               )}
@@ -132,7 +136,7 @@ export default function AdminLoginPage() {
             </div>
           </form>
 
-          <div className="mt-8 text-center text-sm text-slate-500">
+          <div className="mt-8 text-center text-xs font-semibold tracking-wider uppercase text-slate-500">
             SaaS Administration Portal
           </div>
         </Card>

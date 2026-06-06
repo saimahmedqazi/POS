@@ -25,7 +25,7 @@ const Input = forwardRef<
       <input
         ref={ref}
         {...props}
-        className={`w-full border border-slate-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900 ${className}`}
+        className={`w-full bg-surface border border-border/50 text-foreground placeholder:text-slate-500 rounded-xl px-4 py-3 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all shadow-inner ${className}`}
       />
     );
   },

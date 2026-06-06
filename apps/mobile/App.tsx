@@ -33,12 +33,17 @@ export default function App() {
 
     async function initialize() {
       try {
+        console.log('[App] Starting initialize...');
+        console.log('[App] Calling supabase.auth.getSession()...');
         const {
           data,
         } =
           await supabase.auth.getSession();
 
+        console.log('[App] getSession completed. Session found:', !!data.session);
+
         if (!mounted) {
+          console.log('[App] initialize component unmounted, returning.');
           return;
         }
 
@@ -47,7 +52,7 @@ export default function App() {
         );
       } catch (error) {
         console.error(
-          'Session bootstrap failed:',
+          '[App] Session bootstrap failed:',
           error,
         );
 
@@ -56,6 +61,7 @@ export default function App() {
         );
       } finally {
         if (mounted) {
+          console.log('[App] Setting loading to false.');
           setLoading(false);
         }
       }

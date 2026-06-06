@@ -26,16 +26,16 @@ export default function Modal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl w-full max-w-2xl p-6">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-surface/95 backdrop-blur-lg border border-border text-foreground rounded-3xl shadow-xl w-full max-w-2xl p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">
+          <h2 className="text-2xl font-bold tracking-tight">
             {title}
           </h2>
 
           <button
             onClick={onClose}
-            className="text-2xl text-slate-500"
+            className="text-2xl text-muted-foreground hover:text-foreground transition-colors"
           >
             ×
           </button>

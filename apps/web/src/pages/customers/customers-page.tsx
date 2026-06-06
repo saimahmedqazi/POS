@@ -422,6 +422,18 @@ export default function CustomersPage() {
         return;
       }
 
+      if (
+        selectedCustomer.current_balance !== 0
+      ) {
+        setErrorMessage(
+          'Cannot delete customer with an outstanding balance. Please settle the balance first.',
+        );
+        setDeleteModalOpen(
+          false,
+        );
+        return;
+      }
+
       try {
         setSaving(true);
 
@@ -717,6 +729,8 @@ export default function CustomersPage() {
   <Button
     variant="danger"
     className="px-3 py-2"
+    disabled={customer.current_balance !== 0}
+    title={customer.current_balance !== 0 ? "Cannot delete customer with an outstanding balance" : "Delete customer"}
     onClick={() => {
       setSelectedCustomer(
         customer,

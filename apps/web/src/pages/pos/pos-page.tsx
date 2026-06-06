@@ -16,6 +16,9 @@ import {
   useCartStore,
 } from '../../store/cart.store';
 
+import { useHotkeys } from 'react-hotkeys-hook';
+import { useBarcodeScanner } from '../../hooks/use-barcode-scanner';
+
 import AppLayout from '../../layouts/app-layout';
 
 import {
@@ -345,86 +348,48 @@ export default function PosPage() {
     products,
   ]);
 
-  useEffect(() => {
-    const handleHotkeys = (
-      e: KeyboardEvent,
-    ) => {
-      // F2 = Search
-      if (e.key === 'F2') {
-        e.preventDefault();
+  useHotkeys('f2', (e) => {
+    e.preventDefault();
+    searchInputRef.current?.focus();
+  });
 
-        searchInputRef.current?.focus();
+  useHotkeys('f3', (e) => {
+    e.preventDefault();
+    setScannerOpen(true);
+  });
+
+  useHotkeys('f9', (e) => {
+    e.preventDefault();
+    if (!checkoutLoading && items.length > 0) {
+      handleCheckout();
+    }
+  });
+
+  useHotkeys('esc', (e) => {
+    if (items.length > 0) {
+      e.preventDefault();
+      if (confirm('Clear cart?')) {
+        clearCart();
+        setCashReceived('');
+        setTimeout(() => searchInputRef.current?.focus(), 50);
       }
+    }
+  });
 
-      // F3 = Barcode Scanner
-      if (e.key === 'F3') {
-        e.preventDefault();
+  useHotkeys('f11', (e) => {
+    e.preventDefault();
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
 
-        setScannerOpen(true);
-      }
-
-      // F9 = Checkout
-      if (e.key === 'F9') {
-        e.preventDefault();
-
-        if (
-          !checkoutLoading &&
-          items.length > 0
-        ) {
-          handleCheckout();
-        }
-      }
-
-      // ESC = Clear Cart
-      if (
-        e.key === 'Escape' &&
-        items.length > 0
-      ) {
-        e.preventDefault();
-
-        if (
-          confirm(
-            'Clear cart?',
-          )
-        ) {
-       clearCart();
-
-setCashReceived('');
-
-setTimeout(() => {
-  searchInputRef.current?.focus();
-}, 50);
-        }
-      }
-
-      // F11 = Fullscreen
-      if (e.key === 'F11') {
-        e.preventDefault();
-
-        if (
-          !document.fullscreenElement
-        ) {
-          document.documentElement.requestFullscreen();
-        } else {
-          document.exitFullscreen();
-        }
-      }
-    };
-
-    window.addEventListener(
-      'keydown',
-      handleHotkeys,
-    );
-
-    return () =>
-      window.removeEventListener(
-        'keydown',
-        handleHotkeys,
-      );
-  }, [
-    items.length,
-    checkoutLoading,
-  ]);
+  useBarcodeScanner({
+    onScan: (barcode) => {
+      handleBarcodeScan(barcode);
+    }
+  });
 
   const filteredProducts =
     useMemo(() => {
@@ -516,6 +481,16 @@ setTimeout(() => {
       ) {
         alert(
           'Cart is empty',
+        );
+
+        return;
+      }
+
+      if (
+        total < 0
+      ) {
+        alert(
+          'Cart total cannot be negative',
         );
 
         return;
@@ -827,7 +802,7 @@ setTimeout(() => {
           <div className="xl:col-span-2 min-h-0">
             <Card className="h-full flex flex-col">
               <div className="flex justify-between items-center mb-4">
-                <div className="text-sm text-slate-500">
+                <div className="text-sm text-muted-foreground">
                   {
                     filteredProducts.length
                   }{' '}
@@ -888,7 +863,7 @@ setTimeout(() => {
 
               {filteredProducts.length ===
                 0 && (
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
+                  <div className="bg-surface/50 border border-border rounded-2xl p-8 text-center text-muted-foreground">
                     No products found
                   </div>
                 )}
@@ -936,7 +911,7 @@ setTimeout(() => {
                               : 'Out of Stock'}
                           </Badge>
 
-                          <div className="text-sm font-semibold text-slate-600">
+                          <div className="text-sm font-semibold text-foreground">
                             Qty:{' '}
                             {
                               product.quantity
@@ -1008,7 +983,7 @@ setTimeout(() => {
 
               {items.length ===
                 0 ? (
-                <p className="text-slate-500">
+                <p className="text-muted-foreground">
                   Cart is empty
                 </p>
               ) : (
@@ -1032,7 +1007,7 @@ setTimeout(() => {
                                 }
                               </h4>
 
-                              <p className="text-slate-500 text-sm mt-1">
+                              <p className="text-muted-foreground text-sm mt-1">
                                 Rs.{' '}
                                 {
                                   item.price
@@ -1166,7 +1141,7 @@ setTimeout(() => {
                               +
                             </Button>
 
-                            <div className="ml-auto text-xs text-slate-500">
+                            <div className="ml-auto text-xs text-muted-foreground">
                               Stock:{' '}
                               {
                                 item.stock
@@ -1209,7 +1184,7 @@ setTimeout(() => {
                             );
                           }
                         }}
-                        className="w-full border border-slate-200 rounded-2xl p-3 bg-white"
+                        className="w-full border border-border rounded-xl p-3 bg-background text-foreground focus:ring-2 focus:ring-primary/50 outline-none"
                       >
                         <option value="">
                           Walk-in
@@ -1244,7 +1219,7 @@ setTimeout(() => {
                         Type
                       </label>
 
-                      <div className="flex gap-4 bg-slate-100 p-3 rounded-2xl">
+                      <div className="flex gap-4 bg-surface/50 border border-border p-3 rounded-2xl">
                         <label className="flex items-center gap-2">
                           <input
                             type="radio"
@@ -1292,7 +1267,7 @@ setTimeout(() => {
                       </div>
 
                       {!selectedCustomerId && (
-                        <p className="text-sm text-slate-500 mt-2">
+                        <p className="text-sm text-muted-foreground mt-2">
                           Credit only
                           available
                           for
@@ -1303,8 +1278,8 @@ setTimeout(() => {
                     </div>
 
                     {/* TOTALS */}
-                    <div className="bg-slate-50 rounded-xl p-2 border border-slate-200 space-y-3">
-                      <div className="flex justify-between text-slate-600">
+                    <div className="bg-surface rounded-xl p-4 border border-border space-y-3 shadow-sm">
+                      <div className="flex justify-between text-muted-foreground">
                         <span>
                           Items
                         </span>
@@ -1401,7 +1376,7 @@ setTimeout(() => {
                                       ),
                                     )
                                   }
-                                  className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-sm font-medium transition"
+                                  className="px-4 py-2 rounded-xl border border-border bg-surface/50 hover:bg-surface text-sm font-medium transition"
                                 >
                                   Rs.{' '}
                                   {safeMoney(
@@ -1413,8 +1388,8 @@ setTimeout(() => {
                           </div>
 
                           {/* CHANGE */}
-                          <div className="rounded-2xl border border-slate-200 overflow-hidden">
-                            <div className="flex justify-between p-4 bg-white">
+                          <div className="rounded-2xl border border-border overflow-hidden">
+                            <div className="flex justify-between p-4 bg-surface/50 border-t border-border">
                               <span className="font-medium">
                                 Received
                               </span>
@@ -1426,7 +1401,7 @@ setTimeout(() => {
                               </span>
                             </div>
 
-                            <div className="border-t border-slate-200 flex justify-between p-4 bg-slate-50">
+                            <div className="border-t border-border flex justify-between p-4 bg-surface/50">
                               <span className="font-medium">
                                 Change
                               </span>
@@ -1441,7 +1416,7 @@ setTimeout(() => {
 
                             {remainingAmount >
                               0 && (
-                                <div className="border-t border-slate-200 flex justify-between p-4 bg-red-50">
+                                <div className="border-t border-border flex justify-between p-4 bg-red-500/10">
                                   <span className="font-medium text-red-700">
                                     Remaining
                                   </span>

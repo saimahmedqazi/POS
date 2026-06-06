@@ -11,12 +11,12 @@ export default function PageHeader({
 }: Props) {
   return (
     <div className="mb-8">
-      <h1 className="text-3xl font-bold text-slate-800">
+      <h1 className="text-3xl font-bold text-foreground">
         {title}
       </h1>
 
       {subtitle && (
-        <p className="text-slate-500 mt-1">
+        <p className="text-muted-foreground mt-1">
           {subtitle}
         </p>
       )}

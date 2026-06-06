@@ -26,6 +26,13 @@
     "process:allow-restart",
     "fs:scope-appdata-recursive",
     "fs:scope-home-recursive",
-    "process:default"
+    "process:default",
+    "core:window:allow-maximize",
+    "core:window:allow-unmaximize",
+    "core:window:allow-minimize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "updater:default",
+    "updater:allow-check"
   ]
 }

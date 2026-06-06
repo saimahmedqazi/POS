@@ -1,0 +1,20 @@
+# Ignore other apps in monorepo
+apps/web/
+apps/pos-web/
+apps/admin/
+apps/api/
+docs/
+infra/
+
+# Ignore all node_modules recursively
+node_modules/
+**/node_modules/
+
+# Ignore general build/cache artifacts
+**/dist/
+**/build/
+**/.next/
+**/target/
+**/.turbo/
+**/.expo/
+.git/

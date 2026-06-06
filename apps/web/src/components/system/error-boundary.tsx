@@ -59,7 +59,7 @@ export default class ErrorBoundary extends Component<
     ) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
-          <div className="bg-white rounded-3xl shadow-xl p-8 max-w-lg w-full text-center">
+          <div className="bg-surface text-foreground border border-border rounded-3xl shadow-xl p-8 max-w-lg w-full text-center">
             <h1 className="text-3xl font-bold text-red-600">
               Something went wrong
             </h1>

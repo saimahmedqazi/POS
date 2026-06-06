@@ -84,4 +84,7 @@ export default defineConfig({
       ],
     },
   },
+  optimizeDeps: {
+    include: ['recharts', 'lodash'],
+  },
 });
