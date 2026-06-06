@@ -3,7 +3,7 @@ import {
 } from 'react';
 
 
-import Card from '../../components/ui/card';
+// Removed Card import
 
 import Button from '../../components/ui/button';
 
@@ -76,20 +76,24 @@ export default function LicenseActivationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-lg">
-        <Card className="rounded-3xl shadow-xl">
+    <div className="min-h-screen bg-[#020617] flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Background Glows */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="w-full max-w-lg relative z-10">
+        <div className="bg-white/[0.03] border border-white/[0.08] rounded-[32px] p-8 md:p-10 shadow-2xl backdrop-blur-xl">
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-slate-900">
+            <h1 className="text-4xl font-extrabold text-white tracking-tight">
               Activate POS
             </h1>
 
-            <p className="text-slate-600 mt-4 text-lg">
+            <p className="text-slate-400 mt-4 text-lg font-medium">
               Enter your license key to activate the software.
             </p>
 
             {errorMessage && (
-              <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">
+              <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-red-400 text-sm font-medium">
                 {
                   errorMessage
                 }
@@ -97,7 +101,7 @@ export default function LicenseActivationPage() {
             )}
 
             {successMessage && (
-              <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700 text-sm">
+              <div className="mt-6 rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-green-400 text-sm font-medium">
                 {
                   successMessage
                 }
@@ -117,13 +121,13 @@ export default function LicenseActivationPage() {
                       .value,
                   )
                 }
-                className="w-full rounded-2xl border border-slate-300 px-4 py-4 outline-none focus:border-blue-500"
+                className="w-full rounded-2xl border border-white/10 bg-black/20 text-white placeholder-slate-500 px-4 py-4 outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono tracking-widest text-center text-lg"
               />
             </div>
 
             <div className="mt-6">
               <Button
-                className="w-full py-4"
+                className="w-full py-4 !rounded-2xl !bg-blue-600 hover:!bg-blue-500 !text-white font-bold transition-colors text-lg"
                 disabled={
                   loading ||
                   !licenseKey.trim()
@@ -138,11 +142,11 @@ export default function LicenseActivationPage() {
               </Button>
             </div>
 
-            <div className="mt-8 text-sm text-slate-500">
+            <div className="mt-8 text-sm text-slate-500 font-medium">
               Internet connection required for first activation
             </div>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );
