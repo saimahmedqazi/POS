@@ -7,12 +7,9 @@ import {
 } from './cloud-backup.service';
 
 import {
-  supabaseAdmin,
-} from './supabase-admin.service';
-
-import {
   getLocalLicense,
 } from '../repositories/local-auth.repository';
+import { invokePosApi } from './api.service';
 
 
 export async function restoreCloudBackup(

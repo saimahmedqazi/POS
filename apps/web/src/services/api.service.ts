@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from './supabase.service';
 import { getMachineId } from './machine.service';
 
 export async function invokePosApi(action: string, payload: any = {}, licenseKey?: string) {

@@ -27,9 +27,6 @@ export async function validateLicenseOnline() {
   return true;
 }
 
-  return true;
-}
-
 export async function canRunOffline() {
   const localLicense =
     await getLocalLicense();
