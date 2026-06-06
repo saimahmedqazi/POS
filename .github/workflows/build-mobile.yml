@@ -35,7 +35,3 @@ jobs:
       - name: Build Android (APK)
         working-directory: ./apps/mobile
         run: eas build --platform android --profile production --non-interactive
-
-      - name: Build iOS (Simulator)
-        working-directory: ./apps/mobile
-        run: eas build --platform ios --profile production --non-interactive
