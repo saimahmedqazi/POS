@@ -6,44 +6,30 @@ The CYBSOC Point of Sale (POS) system is a multi-platform Software-as-a-Service 
 
 ```mermaid
 graph TD
-    %% Core Backend
     subgraph Backend [Supabase Backend]
         DB[(PostgreSQL)]
         Auth{Supabase Auth}
         RLS[Row Level Security]
         
-        Auth --> RLS
-        RLS --> DB
+        Auth --> RLS --> DB
     end
 
-    %% Web Platform
     subgraph AdminApp [Admin Portal - apps/admin]
         AdminUI[React / Vite]
-        AdminAuth[Admin Users Auth]
-        
-        AdminUI -->|Generate/Revoke Licenses| AdminAuth
     end
 
-    %% Desktop Platform
     subgraph DesktopApp [Desktop POS - apps/web]
-        DesktopUI[React / Vite]
-        TauriCore[Tauri Rust Core]
-        AutoUpdater[Tauri Auto-Updater]
-        
-        DesktopUI --- TauriCore
-        TauriCore --- AutoUpdater
+        DesktopUI[React / Vite] --- TauriCore[Tauri Rust Core] --- AutoUpdater[Tauri Auto-Updater]
     end
 
-    %% Mobile Platform
     subgraph MobileApp [Retailer App - apps/mobile]
         ReactNative[React Native / Expo]
     end
 
-    %% Network Connections
-    AdminAuth -->|HTTPS / JWT| Backend
-    DesktopUI -->|HTTPS / JWT| Backend
-    ReactNative -->|HTTPS / JWT| Backend
-    AutoUpdater -.->|Check for Updates| GitHubReleases[GitHub Releases]
+    AdminUI -->|Generate/Revoke Licenses| Auth
+    DesktopUI -->|HTTPS / JWT| Auth
+    ReactNative -->|HTTPS / JWT| Auth
+    AutoUpdater -.->|Check for Updates| GitHubReleases[(GitHub Releases)]
 ```
 
 ## Platform Breakdown

@@ -8,49 +8,25 @@ All deployments are fully automated using GitHub Actions. Developers never need 
 
 ```mermaid
 graph TD
-    Developer[Developer] -->|git push| GitHubRepo(GitHub Repository)
+    Developer([Developer]) -->|git push| Repo[(GitHub Repository)]
 
     subgraph CI [GitHub Actions Automation]
-        
-        %% Admin Pipeline
-        direction TB
-        subgraph AdminCI [Deploy Admin Panel]
-            Trigger1{Push to main}
-            BuildAdmin[pnpm build admin]
-            PublishPages[Publish to GitHub Pages]
-            
-            Trigger1 --> BuildAdmin
-            BuildAdmin --> PublishPages
+        subgraph AdminCI [Admin Portal]
+            T1{Push main} --> BA[Build Admin] --> PP[Publish to Pages]
         end
 
-        %% Desktop Pipeline
-        subgraph DesktopCI [Deploy Tauri Desktop]
-            Trigger2{Push tag v*}
-            BuildTauri[Compile Rust / Tauri]
-            SignExe[Cryptographic Signature]
-            ReleaseHub[Create GitHub Release]
-            
-            Trigger2 --> BuildTauri
-            BuildTauri --> SignExe
-            SignExe --> ReleaseHub
+        subgraph DesktopCI [Desktop POS]
+            T2{Push v*} --> BT[Compile Tauri] --> SE[Sign Exe] --> RH[GitHub Release]
         end
 
-        %% Mobile Pipeline
-        subgraph MobileCI [Deploy Mobile APK]
-            Trigger3{Push tag mobile-v*}
-            EASCLI[eas build --android]
-            ExpoCloud[Expo Cloud Servers]
-            OutputAPK[Generate Universal APK]
-            
-            Trigger3 --> EASCLI
-            EASCLI --> ExpoCloud
-            ExpoCloud --> OutputAPK
+        subgraph MobileCI [Mobile APK]
+            T3{Push mobile-v*} --> EAS[eas build] --> EC[Expo Cloud] --> OA[Generate APK]
         end
     end
-    
-    GitHubRepo --> Trigger1
-    GitHubRepo --> Trigger2
-    GitHubRepo --> Trigger3
+
+    Repo --> T1
+    Repo --> T2
+    Repo --> T3
 ```
 
 ## License Authentication Workflow
