@@ -62,12 +62,16 @@ serve(async (req) => {
               status: 'ACTIVE',
               machine_id: machineId,
               business_name: businessName,
-              last_validation_at: new Date().toISOString()
+              last_validated_at: new Date().toISOString()
             })
             .eq('id', license.id);
           
           if (error) throw error;
-          result = { success: true };
+          result = { 
+            success: true,
+            businessName: businessName || license.business_name,
+            expiresAt: license.expires_at 
+          };
         }
         break;
 
@@ -76,7 +80,7 @@ serve(async (req) => {
           const { error } = await supabaseClient
             .from('licenses')
             .update({
-              last_validation_at: new Date().toISOString()
+              last_validated_at: new Date().toISOString()
             })
             .eq('id', license.id);
           
@@ -157,28 +161,22 @@ serve(async (req) => {
           const { products } = payload;
           if (!Array.isArray(products)) throw new Error('Invalid products array');
           
-          // Delete old synced products
-          await supabaseClient
-            .from('synced_products')
-            .delete()
-            .eq('license_id', license.id);
-            
           if (products.length > 0) {
             const mapped = products.map((p: any) => ({
-              license_id: license.id,
-              product_id: p.id,
+              id: p.id,
               name: p.name,
               sku: p.sku,
               barcode: p.barcode,
-              sale_price: p.salePrice || p.sale_price,
-              cost_price: p.costPrice || p.cost_price,
-              quantity: p.quantity,
+              sale_price: Number(p.sale_price || p.salePrice || 0),
+              quantity: Number(p.quantity || 0),
+              available_quantity: Number(p.quantity || 0),
+              active: true,
               updated_at: new Date().toISOString()
             }));
             
             const { error } = await supabaseClient
               .from('synced_products')
-              .upsert(mapped);
+              .upsert(mapped, { onConflict: 'id' });
               
             if (error) throw error;
           }
@@ -191,8 +189,7 @@ serve(async (req) => {
         {
           const { data, error } = await supabaseClient
             .from('retailers')
-            .select('*')
-            .eq('license_id', license.id);
+            .select(`id, customer_local_id, disabled`);
           
           if (error) throw error;
           result = { data };
@@ -205,8 +202,7 @@ serve(async (req) => {
           const { error } = await supabaseClient
             .from('retailers')
             .update({ disabled })
-            .eq('id', retailerId)
-            .eq('license_id', license.id);
+            .eq('id', retailerId);
             
           if (error) throw error;
           result = { success: true };
@@ -229,7 +225,6 @@ serve(async (req) => {
                 *
               )
             `)
-            .eq('license_key', license.license_key)
             .order('created_at', { ascending: false });
           
           if (error) throw error;
@@ -243,8 +238,7 @@ serve(async (req) => {
           const { error } = await supabaseClient
             .from('retailer_orders')
             .update({ status, updated_at: new Date().toISOString() })
-            .eq('id', orderId)
-            .eq('license_key', license.license_key);
+            .eq('id', orderId);
             
           if (error) throw error;
           result = { success: true };
@@ -253,12 +247,9 @@ serve(async (req) => {
 
       case 'update-order-items':
         {
-          const { updates } = payload; // Array of { itemId, fulfilledQuantity }
+          const { updates } = payload;
           if (!Array.isArray(updates)) throw new Error('Invalid updates array');
 
-          // Since we can't easily join in an update without RPC, and we assume order items belong to orders that belong to this license:
-          // In a real production environment we would verify the order_item belongs to the license_key. 
-          // For now, we do individual updates.
           for (const update of updates) {
             const { error } = await supabaseClient
               .from('retailer_order_items')
@@ -282,9 +273,9 @@ serve(async (req) => {
     });
 
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error.message || 'Unknown server error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     });
   }
 });
