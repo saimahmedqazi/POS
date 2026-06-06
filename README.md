@@ -15,6 +15,8 @@ To understand how this massive system is glued together, please read our officia
 - 🏗️ **[System Architecture](docs/ARCHITECTURE.md)**: Visual diagrams of how the platforms and backend databases communicate.
 - 🔄 **[CI/CD & Workflows](docs/WORKFLOWS.md)**: Flowcharts explaining the automated deployment pipelines and license authentication logic.
 - 📁 **[Monorepo Structure](docs/STRUCTURE.md)**: A breakdown of how the folders, dependencies, and Turborepo caching work.
+- 🗄️ **[Class Diagram & Models](docs/CLASS_DIAGRAM.md)**: The database schema and entity-relationship models for the Supabase backend.
+- 📐 **[Application Wireframes](docs/WIREFRAMES.md)**: UI layout blueprints and visual hierarchy for the three core applications.
 
 ---
 
