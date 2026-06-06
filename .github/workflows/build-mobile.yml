@@ -27,7 +27,6 @@ jobs:
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
         run: pnpm install
@@ -35,3 +34,5 @@ jobs:
       - name: Build Android (APK)
         working-directory: ./apps/mobile
         run: eas build --platform android --profile production --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
