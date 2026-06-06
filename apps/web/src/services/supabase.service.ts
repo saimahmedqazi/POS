@@ -29,8 +29,8 @@ declare global {
 export const supabase =
   window.__supabase__ ||
   createClient(
-    supabaseUrl,
-    supabaseAnonKey,
+    supabaseUrl || 'https://placeholder.supabase.co',
+    supabaseAnonKey || 'placeholder',
     {
       auth: {
         persistSession:
