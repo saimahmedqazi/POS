@@ -206,84 +206,32 @@ export async function restoreCloudBackup(
 }
 }
 export async function getCloudBackups() {
-  const license =
-    await getLocalLicense();
+  const license = await getLocalLicense();
 
-  if (
-    !license?.license_key
-  ) {
-    throw new Error(
-      'No active license found',
-    );
+  if (!license?.license_key) {
+    throw new Error('No active license found');
   }
 
-  const {
-    data,
-    error,
-  } = await supabaseAdmin
-    .from(
-      'cloud_backups',
-    )
-    .select(`
-      id,
-      backup_version,
-      backup_size,
-      created_at
-    `)
-    .eq(
-      'license_key',
-      license.license_key,
-    )
-    .order(
-      'created_at',
-      {
-        ascending: false,
-      },
-    );
-
-  if (error) {
-    throw error;
-  }
-
-  return data || [];
+  const result = await invokePosApi('get-cloud-backups', {}, license.license_key);
+  
+  // result.data should be mapped to the expected format if needed
+  // get-cloud-backups Edge Function returns all columns, we only need a few:
+  return (result.data || []).map((b: any) => ({
+    id: b.id,
+    backup_version: b.backup_version,
+    backup_size: b.backup_size,
+    created_at: b.created_at,
+  }));
 }
-export async function getCloudBackupById(
-  backupId: string,
-) {
-  const license =
-    await getLocalLicense();
 
-  if (
-    !license?.license_key
-  ) {
-    throw new Error(
-      'No active license found',
-    );
+export async function getCloudBackupById(backupId: string) {
+  const license = await getLocalLicense();
+
+  if (!license?.license_key) {
+    throw new Error('No active license found');
   }
 
-  const {
-    data,
-    error,
-  } = await supabaseAdmin
-    .from(
-      'cloud_backups',
-    )
-    .select(
-      'backup_data',
-    )
-    .eq(
-      'id',
-      backupId,
-    )
-    .eq(
-      'license_key',
-      license.license_key,
-    )
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data.backup_data;
+  const result = await invokePosApi('get-cloud-backup-by-id', { backupId }, license.license_key);
+  
+  return result.backupData;
 }

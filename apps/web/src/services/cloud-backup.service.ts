@@ -63,99 +63,20 @@ export async function createCloudBackup() {
     ),
   ]);
 
- const backupData = {
-  version: 1,
+  const backupData = {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    businessName: license.business_name ?? 'POS Business',
+    products,
+    customers,
+    sales,
+    saleItems,
+    ledgerEntries,
+    inventoryTransactions,
+    appSettings,
+  };
 
-  createdAt:
-    new Date().toISOString(),
-
-  businessName:
-    license.business_name ??
-    'POS Business',
-
-  products,
-  customers,
-  sales,
-  saleItems,
-  ledgerEntries,
-  inventoryTransactions,
-  appSettings,
-};
-
-  const backupJson =
-    JSON.stringify(
-      backupData,
-    );
-
-  const {
-    error,
-  } = await supabaseAdmin
-    .from(
-      'cloud_backups',
-    )
-    .insert({
-      license_key:
-        license.license_key,
-
-      backup_version:
-        Date.now(),
-
-      backup_size:
-        backupJson.length,
-
-      backup_data:
-        backupData,
-    });
-
-  if (error) {
-    throw error;
-  }
-
-  // KEEP ONLY LATEST 30
-  const {
-    data: backups,
-  } = await supabaseAdmin
-    .from(
-      'cloud_backups',
-    )
-    .select(
-      'id',
-    )
-    .eq(
-      'license_key',
-      license.license_key,
-    )
-    .order(
-      'created_at',
-      {
-        ascending: false,
-      },
-    );
-
-  if (
-    backups &&
-    backups.length > 30
-  ) {
-    const idsToDelete =
-      backups
-        .slice(30)
-        .map(
-          (
-            backup,
-          ) =>
-            backup.id,
-        );
-
-    await supabaseAdmin
-      .from(
-        'cloud_backups',
-      )
-      .delete()
-      .in(
-        'id',
-        idsToDelete,
-      );
-  }
+  await invokePosApi('create-cloud-backup', { backupData }, license.license_key);
 
   return true;
 }

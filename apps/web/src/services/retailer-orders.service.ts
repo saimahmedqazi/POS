@@ -1,97 +1,24 @@
-import {
-  supabaseAdmin,
-} from './supabase-admin.service';
+import { getLocalLicense } from '../repositories/local-auth.repository';
+import { invokePosApi } from './api.service';
 
 export async function fetchRetailerOrders() {
-  const {
-    data,
-    error,
-  } = await supabaseAdmin
-    .from(
-      'retailer_orders',
-    )
-    .select(
-      `
-      *,
-      retailers (
-        id,
-        business_name,
-        phone,
-        customer_local_id
-      ),
-      retailer_order_items (
-        *
-      )
-      `,
-    )
-    .order(
-      'created_at',
-      {
-        ascending: false,
-      },
-    );
+  const license = await getLocalLicense();
+  if (!license?.license_key) throw new Error('No active license found');
 
-  if (error) {
-    throw error;
-  }
-
-  return data || [];
+  const result = await invokePosApi('get-orders', {}, license.license_key);
+  return result.data || [];
 }
 
-export async function updateRetailerOrderStatus(
-  orderId: string,
-  status:
-    | 'PENDING'
-    | 'PARTIAL'
-    | 'FULFILLED'
-    | 'REJECTED',
-) {
-  const {
-    error,
-  } = await supabaseAdmin
-    .from(
-      'retailer_orders',
-    )
-    .update({
-      status,
-      updated_at:
-        new Date().toISOString(),
-    })
-    .eq(
-      'id',
-      orderId,
-    );
+export async function updateRetailerOrderStatus(orderId: string, status: 'PENDING' | 'PARTIAL' | 'FULFILLED' | 'REJECTED') {
+  const license = await getLocalLicense();
+  if (!license?.license_key) throw new Error('No active license found');
 
-  if (error) {
-    throw error;
-  }
+  await invokePosApi('update-order', { orderId, status }, license.license_key);
 }
 
-export async function updateRetailerOrderItems(
-  updates: {
-    itemId: string;
+export async function updateRetailerOrderItems(updates: { itemId: string; fulfilledQuantity: number; }[]) {
+  const license = await getLocalLicense();
+  if (!license?.license_key) throw new Error('No active license found');
 
-    fulfilledQuantity: number;
-  }[],
-) {
-  for (const update of updates) {
-    const {
-      error,
-    } = await supabaseAdmin
-      .from(
-        'retailer_order_items',
-      )
-      .update({
-        fulfilled_quantity:
-          update.fulfilledQuantity,
-      })
-      .eq(
-        'id',
-        update.itemId,
-      );
-
-    if (error) {
-      throw error;
-    }
-  }
+  await invokePosApi('update-order-items', { updates }, license.license_key);
 }

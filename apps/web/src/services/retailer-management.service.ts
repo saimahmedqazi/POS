@@ -1,65 +1,23 @@
-import {
-  supabaseAdmin,
-} from './supabase-admin.service';
+import { getLocalLicense } from '../repositories/local-auth.repository';
+import { invokePosApi } from './api.service';
 
-export async function setRetailerDisabledState(
-  retailerId: string,
-  disabled: boolean,
-) {
-  const {
-    error,
-  } = await supabaseAdmin
-    .from(
-      'retailers',
-    )
-    .update({
-      disabled,
-    })
-    .eq(
-      'id',
-      retailerId,
-    );
+export async function setRetailerDisabledState(retailerId: string, disabled: boolean) {
+  const license = await getLocalLicense();
+  if (!license?.license_key) throw new Error('No active license found');
 
-  if (error) {
-    throw error;
-  }
+  await invokePosApi('update-retailer', { retailerId, disabled }, license.license_key);
 }
 
 export async function getRetailersMap() {
-  const {
-    data,
-    error,
-  } = await supabaseAdmin
-    .from(
-      'retailers',
-    )
-    .select(
-      `
-      id,
-      customer_local_id,
-      disabled
-      `,
-    );
+  const license = await getLocalLicense();
+  if (!license?.license_key) throw new Error('No active license found');
 
-  if (error) {
-    throw error;
-  }
+  const result = await invokePosApi('get-retailers', {}, license.license_key);
 
-  const map =
-    new Map();
-
-  (
-    data || []
-  ).forEach(
-    (
-      retailer: any,
-    ) => {
-      map.set(
-        retailer.customer_local_id,
-        retailer,
-      );
-    },
-  );
+  const map = new Map();
+  (result.data || []).forEach((retailer: any) => {
+    map.set(retailer.customer_local_id, retailer);
+  });
 
   return map;
 }
