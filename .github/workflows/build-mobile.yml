@@ -31,10 +31,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Inject Environment Variables
+        working-directory: ./apps/mobile
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}" >> .env
+
       - name: Build Android (APK)
         working-directory: ./apps/mobile
         run: eas build --platform android --profile production --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
