@@ -6,7 +6,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>web</title>
   </head>
-  <body>
+  <body style="margin: 0; padding: 0; background-color: #020617; color: white; font-family: sans-serif;">
+    <script>
+      // 1. Global Error Catcher (Prevents silent White Screens)
+      window.onerror = function (message, source, lineno, colno, error) {
+        document.body.innerHTML = 
+          '<div style="padding: 30px; background: #020617; color: #f87171; height: 100vh; box-sizing: border-box;">' +
+          '<h2 style="margin-top:0">Fatal Application Error</h2>' +
+          '<p style="font-size: 1.1em">' + message + '</p>' +
+          '<pre style="background: rgba(255,0,0,0.1); padding: 15px; border-radius: 8px; overflow: auto;">' + 
+          (error && error.stack ? error.stack : source + ':' + lineno + ':' + colno) + 
+          '</pre>' +
+          '<button onclick="location.reload()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 15px;">Reload App</button>' +
+          '</div>';
+        return true;
+      };
+
+      // 2. Nuke lingering PWA Service Workers that cache broken old versions
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var i = 0; i < registrations.length; i++) {
+            registrations[i].unregister().then(function(success) {
+              if (success) {
+                console.log('Unregistered lingering service worker');
+                // Force reload to grab the fresh app bypass the cache
+                window.location.reload(true);
+              }
+            });
+          }
+        });
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
