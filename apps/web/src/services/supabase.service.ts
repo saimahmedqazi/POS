@@ -15,8 +15,8 @@ if (
   !supabaseUrl ||
   !supabaseAnonKey
 ) {
-  throw new Error(
-    'Supabase environment variables missing',
+  console.warn(
+    'Supabase environment variables missing. Cloud features will be disabled.',
   );
 }
 

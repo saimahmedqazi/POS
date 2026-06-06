@@ -99,6 +99,10 @@ export async function receiveCustomerPayment(
   customerId: string,
   amount: number,
 ) {
+  if (amount <= 0 || !Number.isFinite(amount)) {
+    throw new Error('Payment amount must be greater than zero');
+  }
+
   const db =
     getDatabase();
 

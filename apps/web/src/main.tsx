@@ -201,8 +201,16 @@ try {
     );
 
     root.render(
-      <div className="min-h-screen flex items-center justify-center bg-red-100 text-red-700">
-        Failed to initialize POS
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-slate-100 p-8 text-center">
+        <div className="bg-white/[0.05] border border-white/10 rounded-2xl p-8 max-w-2xl backdrop-blur-xl">
+          <h1 className="text-2xl font-bold mb-4 text-red-400">Failed to initialize POS</h1>
+          <p className="mb-6 text-slate-300">
+            This usually happens if another instance of the POS is already running, or if your local database file is locked. Please close any other open POS windows and try again.
+          </p>
+          <div className="bg-black/50 p-4 rounded-xl text-sm text-left overflow-auto border border-white/5 font-mono text-red-300">
+            {error instanceof Error ? error.message : String(error)}
+          </div>
+        </div>
       </div>,
     );
   }

@@ -15,8 +15,8 @@ if (
   !supabaseUrl ||
   !serviceRoleKey
 ) {
-  throw new Error(
-    'Missing Supabase admin environment variables',
+  console.warn(
+    'Missing Supabase admin environment variables. Cloud sync will be disabled.',
   );
 }
 
