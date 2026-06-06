@@ -1,159 +1,65 @@
-# Turborepo starter
+# 🛒 CYBSOC Point of Sale (POS)
 
-This Turborepo starter is maintained by the Turborepo core team.
+> A high-performance, multi-platform Software-as-a-Service Point of Sale ecosystem.
 
-## Using this example
+![CYBSOC POS](/apps/mobile/assets/icon.png)
 
-Run the following command:
+Welcome to the CYBSOC POS Monorepo! This repository contains the complete suite of applications required to run, manage, and scale the CYBSOC POS ecosystem. It is powered by React, Tauri, React Native, and Supabase.
 
-```sh
-npx create-turbo@latest
+---
+
+## 📚 Official Documentation
+
+To understand how this massive system is glued together, please read our official documentation:
+
+- 🏗️ **[System Architecture](docs/ARCHITECTURE.md)**: Visual diagrams of how the platforms and backend databases communicate.
+- 🔄 **[CI/CD & Workflows](docs/WORKFLOWS.md)**: Flowcharts explaining the automated deployment pipelines and license authentication logic.
+- 📁 **[Monorepo Structure](docs/STRUCTURE.md)**: A breakdown of how the folders, dependencies, and Turborepo caching work.
+
+---
+
+## 🚀 Quick Start (Development)
+
+This project uses `pnpm` workspaces to manage all applications from the root folder.
+
+### 1. Install Dependencies
+```bash
+# From the root directory, this will install dependencies for ALL apps
+pnpm install
 ```
 
-## What's inside?
-
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+### 2. Run the CYBSOC Admin Portal
+The internal dashboard used to generate and manage SaaS license keys.
+```bash
+pnpm --filter admin run dev
 ```
 
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+### 3. Run the Desktop POS (Tauri)
+The primary Windows application used by retail cashiers.
+```bash
+pnpm --filter web run tauri dev
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo build --filter=docs
+### 4. Run the Retailer Mobile App
+The mobile companion app built with React Native.
+```bash
+pnpm --filter mobile run start
 ```
 
-Without global `turbo`:
+---
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+## ☁️ Deployment Pipelines
 
-### Develop
+We have fully automated our deployment processes using GitHub Actions. You never need to build binaries locally!
 
-To develop all apps and packages, run the following command:
+- **Admin Portal**: Automatically deploys to **GitHub Pages** whenever code in `apps/admin` is pushed to `main`.
+- **Desktop POS**: Automatically compiles an `.exe`, signs it cryptographically, and publishes a **GitHub Release** whenever you push a `v*` tag (e.g., `git tag v1.0.0 && git push origin v1.0.0`). The desktop app has an Auto-Updater that will seamlessly download these releases.
+- **Retailer Mobile App**: Automatically spins up an Expo Application Services (EAS) cloud server and outputs a Universal `.apk` whenever you push a `mobile-v*` tag (e.g., `git tag mobile-v1.0.0 && git push origin mobile-v1.0.0`).
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+---
 
-```sh
-cd my-turborepo
-turbo dev
-```
+## 🔐 Security
 
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+This project relies on **Row Level Security (RLS)** via Supabase. 
+- The master Service Role Key has been strictly ripped out of the frontend code.
+- Ensure your `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are provided in your GitHub Secrets for the CI/CD pipelines to build successfully.
