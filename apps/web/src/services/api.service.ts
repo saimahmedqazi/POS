@@ -1,12 +1,12 @@
 import { supabase } from './supabase.service';
-import { getMachineId } from './machine.service';
+import { getMachineFingerprint } from './machine.service';
 
 export async function invokePosApi(action: string, payload: any = {}, licenseKey?: string) {
   if (!licenseKey) {
     throw new Error('License Key is required to call POS API');
   }
 
-  const machineId = await getMachineId();
+  const machineId = await getMachineFingerprint();
 
   const { data, error } = await supabase.functions.invoke('pos-api', {
     body: {
