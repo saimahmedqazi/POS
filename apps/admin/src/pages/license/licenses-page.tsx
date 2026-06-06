@@ -5,7 +5,7 @@ import Card from '../../components/ui/card';
 import Button from '../../components/ui/button';
 import PageHeader from '../../components/ui/page-header';
 
-import { supabaseAdmin } from '../../services/supabase-admin.service';
+import { supabase } from '../../services/supabase.service';
 
 type License = {
   id: string;
@@ -73,7 +73,7 @@ export default function LicensesPage() {
     try {
       setLoading(true);
 
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await supabase
         .from('licenses')
         .select('*')
         .order('created_at', { ascending: false });
@@ -102,7 +102,7 @@ export default function LicensesPage() {
         .replaceAll('-', '')
         .toUpperCase();
 
-      const { error } = await supabaseAdmin.from('licenses').insert({
+      const { error } = await supabase.from('licenses').insert({
         license_key: licenseKey,
         business_name: '',
         machine_id: null,
@@ -129,7 +129,7 @@ export default function LicensesPage() {
     try {
       setLoadingState(id, 'reset');
 
-      await supabaseAdmin
+      await supabase
         .from('licenses')
         .update({
           machine_id: null,
@@ -162,7 +162,7 @@ export default function LicensesPage() {
     try {
       setLoadingState(id, 'suspend');
 
-      await supabaseAdmin
+      await supabase
         .from('licenses')
         .update({
           active: !active,
@@ -186,7 +186,7 @@ export default function LicensesPage() {
     try {
       setLoadingState(id, 'extend');
 
-      const { error } = await supabaseAdmin
+      const { error } = await supabase
         .from('licenses')
         .update({
           expires_at: new Date(dateStr).toISOString(),

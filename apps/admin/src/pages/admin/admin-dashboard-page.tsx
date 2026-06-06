@@ -5,7 +5,7 @@ import Card from '../../components/ui/card';
 import PageHeader from '../../components/ui/page-header';
 import Button from '../../components/ui/button';
 
-import { supabaseAdmin } from '../../services/supabase-admin.service';
+import { supabase } from '../../services/supabase.service';
 
 type Stats = {
   totalLicenses: number;
@@ -95,7 +95,7 @@ export default function AdminDashboardPage() {
         : setLoading(true);
 
       const { data, error } =
-        await supabaseAdmin
+        await supabase
           .from('licenses')
           .select('active, status, expires_at');
 
