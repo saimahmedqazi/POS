@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "Retailer App",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,6 +15,10 @@
       "supportsTablet": true
     },
     "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#020617",
+        "foregroundImage": "./assets/icon.png"
+      },
       "predictiveBackGestureEnabled": false,
       "package": "com.cybsoc.pos"
     },
