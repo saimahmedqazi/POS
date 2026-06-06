@@ -199,6 +199,9 @@ importers:
       expo:
         specifier: ~54.0.35
         version: 54.0.35(@babel/core@7.29.0)(@expo/dom-webview@55.0.6)(bufferutil@4.1.0)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(bufferutil@4.1.0)(react@19.1.0)(utf-8-validate@5.0.10))(react@19.1.0)(typescript@5.9.2)(utf-8-validate@5.0.10)
+      expo-font:
+        specifier: ~14.0.12
+        version: 14.0.12(expo@54.0.35(@babel/core@7.29.0)(@expo/dom-webview@55.0.6)(bufferutil@4.1.0)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(bufferutil@4.1.0)(react@19.1.0)(utf-8-validate@5.0.10))(react@19.1.0)(typescript@5.9.2)(utf-8-validate@5.0.10))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(bufferutil@4.1.0)(react@19.1.0)(utf-8-validate@5.0.10))(react@19.1.0)
       expo-status-bar:
         specifier: ~3.0.9
         version: 3.0.9(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(bufferutil@4.1.0)(react@19.1.0)(utf-8-validate@5.0.10))(react@19.1.0)
@@ -13235,7 +13238,7 @@ snapshots:
 
   jest-message-util@30.4.1:
     dependencies:
-      '@babel/code-frame': 7.29.0
+      '@babel/code-frame': 7.29.7
       '@jest/types': 30.4.1
       '@types/stack-utils': 2.0.3
       chalk: 4.1.2
@@ -13341,7 +13344,7 @@ snapshots:
   jest-snapshot@30.4.1:
     dependencies:
       '@babel/core': 7.29.0
-      '@babel/generator': 7.29.1
+      '@babel/generator': 7.29.7
       '@babel/plugin-syntax-jsx': 7.28.6(@babel/core@7.29.0)
       '@babel/plugin-syntax-typescript': 7.28.6(@babel/core@7.29.0)
       '@babel/types': 7.29.7
