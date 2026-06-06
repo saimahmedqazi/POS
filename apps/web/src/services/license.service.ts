@@ -34,8 +34,9 @@ export async function activateLicense(
     .single();
 
   if (error || !license) {
+    console.error('License fetch error:', error);
     throw new Error(
-      'Invalid license key',
+      error ? `DB Error: ${error.message}` : 'Invalid license key',
     );
   }
 
