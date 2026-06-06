@@ -98,6 +98,7 @@ try {
         break;
 
       case 'LICENSE_REQUIRED':
+      case 'LICENSE_INVALID':
         initialRoute =
           '/activate-license';
         break;
