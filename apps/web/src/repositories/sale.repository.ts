@@ -66,6 +66,9 @@ export async function createLocalSale(
           productId:
             item.productId,
 
+          productName:
+            item.name,
+
           quantity,
 
           unitPrice,
@@ -238,11 +241,12 @@ export async function createLocalSale(
           id,
           sale_id,
           product_id,
+          product_name,
           quantity,
           unit_price,
           subtotal
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         `,
         [
           crypto.randomUUID(),
@@ -250,6 +254,8 @@ export async function createLocalSale(
           salePayload.saleId,
 
           item.productId,
+
+          item.productName,
 
           item.quantity,
 
@@ -423,7 +429,7 @@ export async function getLocalSales() {
         `
         SELECT 
           si.*,
-          p.name as product_name
+          COALESCE(si.product_name, p.name) as product_name
         FROM sale_items si
         LEFT JOIN products p ON si.product_id = p.id
         WHERE si.sale_id = ?

@@ -510,6 +510,19 @@ export default function PosPage() {
         return;
       }
 
+      // CREDIT VALIDATION
+      if (
+        paymentStatus ===
+        'CREDIT' &&
+        !selectedCustomerId
+      ) {
+        alert(
+          'You must select a customer for credit sales',
+        );
+
+        return;
+      }
+
       try {
         setCheckoutLoading(
           true,

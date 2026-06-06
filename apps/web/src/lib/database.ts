@@ -101,6 +101,11 @@ export async function initDatabase() {
     )
   `);
 
+  await db.execute(`
+    ALTER TABLE sale_items
+    ADD COLUMN product_name TEXT
+  `).catch(() => {});
+
   // SYNC QUEUE
   await db.execute(`
     CREATE TABLE IF NOT EXISTS sync_queue (
