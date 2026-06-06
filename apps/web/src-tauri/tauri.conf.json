@@ -42,9 +42,9 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://api.example.com/update/{{target}}/{{current_version}}"
+        "https://github.com/saimahmedqazi/POS/releases/latest/download/update.json"
       ],
-      "pubkey": "dGVzdA=="
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYxQzRBNDdCMkVBMDFDOEIKUldTTEhLQXVlNlRFWVlXUWhDY09iM0FPRjZFNHQvb3dIYUx3dEw0MGVNeFN2cVRNRG1PYUNOU0gK"
     }
   }
 }

@@ -69,16 +69,6 @@ export default function LicensesPage() {
     return new Date(license.expires_at).getTime() < Date.now();
   }
 
-  function getSafeBaseDate(license: License) {
-    const now = new Date();
-
-    if (!license.expires_at) return now;
-
-    const expiry = new Date(license.expires_at);
-
-    return expiry.getTime() < now.getTime() ? now : expiry;
-  }
-
   async function loadLicenses() {
     try {
       setLoading(true);

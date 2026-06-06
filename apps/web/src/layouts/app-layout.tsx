@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/auth-context';
 import { getDatabase } from '../lib/database';
+import UpdaterManager from '../components/updater-manager';
 
 type Props = { children: ReactNode };
 
@@ -150,6 +151,8 @@ export default function AppLayout({ children }: Props) {
           {children}
         </div>
       </main>
+
+      <UpdaterManager />
     </div>
   );
 }
