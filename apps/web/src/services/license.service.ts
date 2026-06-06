@@ -10,6 +10,10 @@ import {
   saveLicense,
 } from '../repositories/local-auth.repository';
 
+import {
+  getSetting,
+} from '../repositories/settings.repository';
+
 export async function activateLicense(
   licenseKey: string,
 ) {
@@ -87,6 +91,9 @@ export async function activateLicense(
     );
   }
 
+  const localBusinessName = await getSetting('business_name');
+  const finalBusinessName = license.business_name || localBusinessName || 'POS Client';
+
   // ACTIVATE / VALIDATE
   const {
     error:
@@ -96,6 +103,9 @@ export async function activateLicense(
     .update({
       machine_id:
         machineId,
+
+      business_name:
+        finalBusinessName,
 
       activated_at:
         new Date().toISOString(),

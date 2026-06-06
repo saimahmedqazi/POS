@@ -91,6 +91,9 @@ export default function LicensesPage() {
   async function generateLicense() {
     if (generating) return;
 
+    const bName = window.prompt('Enter Business Name for this license (Optional):');
+    if (bName === null) return; // User cancelled
+
     try {
       setGenerating(true);
 
@@ -104,7 +107,7 @@ export default function LicensesPage() {
 
       const { error } = await supabase.from('licenses').insert({
         license_key: licenseKey,
-        business_name: '',
+        business_name: bName.trim(),
         machine_id: null,
         status: 'ACTIVE',
         active: true,
