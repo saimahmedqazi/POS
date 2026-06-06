@@ -354,7 +354,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           <Card>
             <div className="flex items-center justify-between">
               <div>
@@ -448,13 +448,37 @@ export default function DashboardPage() {
 
                 <div className="mt-4">
                   <Badge variant="warning">
-                    Stock
+                    Stock Count
                   </Badge>
                 </div>
               </div>
 
               <div className="bg-orange-100 p-4 rounded-2xl">
                 <Package className="text-orange-600" />
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted-foreground text-sm font-medium">
+                  Total Inventory Cost
+                </p>
+
+                <h2 className="text-3xl font-bold mt-3">
+                  {formatCurrency(inventoryValuation.totalCostValue)}
+                </h2>
+
+                <div className="mt-4">
+                  <Badge variant="neutral">
+                    Asset Value
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="bg-teal-100 p-4 rounded-2xl">
+                <Package className="text-teal-600" />
               </div>
             </div>
           </Card>
