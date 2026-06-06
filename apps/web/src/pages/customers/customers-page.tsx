@@ -350,40 +350,45 @@ export default function CustomersPage() {
           if (
             mobileEnabled
           ) {
-            const retailer =
-              await createRetailerAccount(
+            try {
+              const retailer =
+                await createRetailerAccount(
+                  {
+                    customerLocalId:
+                      createdCustomer.id,
+
+                    businessName:
+                      name,
+
+                    phone,
+
+                    password:
+                      retailerPassword,
+                  },
+                );
+
+              await enableCustomerMobileAccess(
+                createdCustomer.id,
+                retailer.retailerId,
+              );
+
+              setCreatedRetailerCredentials(
                 {
-                  customerLocalId:
-                    createdCustomer.id,
-
-                  businessName:
-                    name,
-
-                  phone,
+                  phone:
+                    retailer.normalizedPhone,
 
                   password:
                     retailerPassword,
                 },
               );
 
-            await enableCustomerMobileAccess(
-              createdCustomer.id,
-              retailer.retailerId,
-            );
-
-            setCreatedRetailerCredentials(
-              {
-                phone:
-                  retailer.normalizedPhone,
-
-                password:
-                  retailerPassword,
-              },
-            );
-
-            setCredentialsModalOpen(
-              true,
-            );
+              setCredentialsModalOpen(
+                true,
+              );
+            } catch (err: any) {
+              await deleteLocalCustomer(createdCustomer.id);
+              throw new Error(err?.message || "Failed creating retailer account");
+            }
           }
 
           setSuccessMessage(
@@ -568,7 +573,7 @@ export default function CustomersPage() {
         </div>
 
         {errorMessage && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+          <div className="fixed top-4 right-4 z-[9999] w-full max-w-md rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 shadow-2xl">
             <div className="flex items-center justify-between">
               <span>
                 {errorMessage}
@@ -588,7 +593,7 @@ export default function CustomersPage() {
         )}
 
         {successMessage && (
-          <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+          <div className="fixed top-4 right-4 z-[9999] w-full max-w-md rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700 shadow-2xl">
             <div className="flex items-center justify-between">
               <span>
                 {successMessage}
