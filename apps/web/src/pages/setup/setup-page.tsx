@@ -121,15 +121,19 @@ export default function SetupPage() {
     };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-lg">
-        <Card className="rounded-3xl shadow-xl">
+    <div className="min-h-screen bg-[#020617] flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Background Glows */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="bg-white/[0.03] border border-white/[0.08] rounded-[32px] p-8 shadow-2xl backdrop-blur-xl">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-slate-900">
+            <h1 className="text-4xl font-extrabold text-white tracking-tight">
               POS Setup
             </h1>
 
-            <p className="text-slate-500 mt-2">
+            <p className="text-slate-400 mt-2 font-medium">
               Initialize your POS system
             </p>
           </div>
@@ -138,29 +142,17 @@ export default function SetupPage() {
             <Input
               type="text"
               placeholder="Business Name"
-              value={
-                businessName
-              }
-              onChange={(e) =>
-                setBusinessName(
-                  e.target
-                    .value,
-                )
-              }
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              className="!bg-black/20 !border-white/10 !text-white !placeholder-slate-500 !py-4 font-medium"
             />
 
             <Input
               type="text"
               placeholder="Owner Name"
-              value={
-                ownerName
-              }
-              onChange={(e) =>
-                setOwnerName(
-                  e.target
-                    .value,
-                )
-              }
+              value={ownerName}
+              onChange={(e) => setOwnerName(e.target.value)}
+              className="!bg-black/20 !border-white/10 !text-white !placeholder-slate-500 !py-4 font-medium"
             />
 
             <Input
@@ -169,29 +161,23 @@ export default function SetupPage() {
               inputMode="numeric"
               placeholder="4 Digit PIN"
               value={pin}
-              onChange={(e) =>
-                setPin(
-                  e.target
-                    .value,
-                )
-              }
+              onChange={(e) => setPin(e.target.value)}
+              className="!bg-black/20 !border-white/10 !text-white !placeholder-slate-500 !py-4 text-center text-2xl tracking-[0.5em] font-mono"
             />
 
             <Button
-              className="w-full"
-              disabled={
-                loading
-              }
-              onClick={
-                handleSetup
-              }
+              className="w-full !py-4 !rounded-2xl !bg-blue-600 hover:!bg-blue-500 !text-white font-bold transition-colors"
+              disabled={loading}
+              onClick={handleSetup}
             >
-              {loading
-                ? 'Initializing...'
-                : 'Initialize POS'}
+              {loading ? 'Initializing...' : 'Initialize POS'}
             </Button>
           </div>
-        </Card>
+
+          <div className="mt-8 text-center text-sm text-slate-500 font-medium">
+            Powered by CYBSOC
+          </div>
+        </div>
       </div>
     </div>
   );
