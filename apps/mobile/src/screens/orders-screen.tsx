@@ -46,12 +46,12 @@ export default function OrdersScreen() {
   const getStatusConfig = (status: string) => {
     const s = (status || '').toUpperCase();
     if (s === 'COMPLETED' || s === 'DELIVERED' || s === 'PAID' || s === 'FULFILLED') {
-      return { bg: '#f0fdf4', text: '#16a34a', icon: 'check-circle' as const };
+      return { bg: 'rgba(22, 163, 74, 0.1)', text: '#4ade80', icon: 'check-circle' as const };
     }
     if (s === 'CANCELLED' || s === 'REJECTED' || s === 'FAILED') {
-      return { bg: '#fef2f2', text: '#dc2626', icon: 'x-circle' as const };
+      return { bg: 'rgba(220, 38, 38, 0.1)', text: '#f87171', icon: 'x-circle' as const };
     }
-    return { bg: '#fffbeb', text: '#d97706', icon: 'clock' as const }; // PENDING, PROCESSING
+    return { bg: 'rgba(217, 119, 6, 0.1)', text: '#fbbf24', icon: 'clock' as const }; // PENDING, PROCESSING
   };
 
   const handleWhatsAppShare = (order: any) => {
@@ -93,7 +93,7 @@ export default function OrdersScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color="#3b82f6" />
         <Text style={styles.loadingText}>Loading orders...</Text>
       </View>
     );
@@ -111,7 +111,8 @@ export default function OrdersScreen() {
             setRefreshing(true);
             loadOrders();
           }}
-          colors={['#2563eb']}
+          colors={['#3b82f6']}
+          tintColor="#3b82f6"
         />
       }
       ListHeaderComponent={
@@ -204,7 +205,7 @@ export default function OrdersScreen() {
       }}
       ListEmptyComponent={
         <View style={styles.emptyContainer}>
-          <Feather name="folder" size={48} color="#cbd5e1" />
+          <Feather name="folder" size={48} color="#475569" />
           <Text style={styles.emptyText}>No orders found</Text>
         </View>
       }
@@ -217,37 +218,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#020617',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#64748b',
+    color: '#94a3b8',
     fontWeight: '500',
   },
   listContent: {
     padding: 20,
     flexGrow: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#020617',
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#f8fafc',
     marginBottom: 20,
     letterSpacing: -0.5,
   },
   orderCard: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 6,
-    elevation: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     overflow: 'hidden',
   },
   cardTapArea: {
@@ -262,11 +258,11 @@ const styles = StyleSheet.create({
   orderIdText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#f8fafc',
   },
   dateText: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#94a3b8',
     marginTop: 2,
     fontWeight: '500',
   },
@@ -287,19 +283,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
     paddingTop: 10,
     marginBottom: 10,
   },
   totalLabel: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#94a3b8',
     fontWeight: '600',
   },
   totalValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#3b82f6',
   },
   expandRow: {
     flexDirection: 'row',
@@ -314,15 +310,15 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   expandedContent: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
     padding: 16,
   },
   itemsTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#475569',
+    color: '#94a3b8',
     marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -331,9 +327,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 10,
     padding: 10,
     marginBottom: 8,
@@ -341,22 +337,22 @@ const styles = StyleSheet.create({
   itemNameText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#f8fafc',
   },
   itemQtyText: {
     fontSize: 11,
-    color: '#64748b',
+    color: '#94a3b8',
     marginTop: 2,
     fontWeight: '500',
   },
   itemSubtotalText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#3b82f6',
   },
   noItemsText: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#475569',
     fontStyle: 'italic',
     textAlign: 'center',
     marginVertical: 10,
@@ -369,11 +365,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     marginTop: 10,
-    shadowColor: '#25d366',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2,
   },
   whatsappButtonText: {
     color: '#fff',
@@ -388,7 +379,7 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#cbd5e1',
+    color: '#64748b',
     fontWeight: '600',
   },
 });

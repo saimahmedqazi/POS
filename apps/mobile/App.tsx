@@ -100,19 +100,20 @@ export default function App() {
           alignItems:
             'center',
           backgroundColor:
-            '#f9fafb',
+            '#020617',
           padding: 24,
         }}
       >
         <ActivityIndicator
           size="large"
+          color="#3b82f6"
         />
 
         <Text
           style={{
             marginTop: 16,
             color:
-              '#6b7280',
+              '#94a3b8',
             fontSize: 16,
           }}
         >

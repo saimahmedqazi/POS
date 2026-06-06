@@ -179,7 +179,7 @@ export default function LoginScreen() {
           {/* Logo / Brand Header */}
           <View style={styles.headerContainer}>
             <View style={styles.logoCircle}>
-              <Feather name="shopping-bag" size={32} color={isLocked ? '#94a3b8' : '#2563eb'} />
+              <Feather name="shopping-bag" size={32} color={isLocked ? '#475569' : '#3b82f6'} />
             </View>
             <Text style={styles.title}>Retailer Portal</Text>
             <Text style={styles.subtitle}>Place wholesale orders from your supplier</Text>
@@ -201,10 +201,10 @@ export default function LoginScreen() {
             {/* Phone Input */}
             <Text style={styles.inputLabel}>Phone Number</Text>
             <View style={[styles.inputWrapper, isLocked && styles.inputWrapperDisabled]}>
-              <Feather name="phone" size={18} color={isLocked ? '#cbd5e1' : '#9ca3af'} style={styles.inputIcon} />
+              <Feather name="phone" size={18} color={isLocked ? '#475569' : '#94a3b8'} style={styles.inputIcon} />
               <TextInput
                 placeholder="03XXXXXXXXX"
-                placeholderTextColor={isLocked ? '#cbd5e1' : '#9ca3af'}
+                placeholderTextColor={isLocked ? '#475569' : '#64748b'}
                 value={phone}
                 onChangeText={(text) => {
                   setPhone(text);
@@ -221,10 +221,10 @@ export default function LoginScreen() {
             {/* Password Input */}
             <Text style={styles.inputLabel}>Password</Text>
             <View style={[styles.inputWrapper, isLocked && styles.inputWrapperDisabled]}>
-              <Feather name="lock" size={18} color={isLocked ? '#cbd5e1' : '#9ca3af'} style={styles.inputIcon} />
+              <Feather name="lock" size={18} color={isLocked ? '#475569' : '#94a3b8'} style={styles.inputIcon} />
               <TextInput
                 placeholder="Enter password"
-                placeholderTextColor={isLocked ? '#cbd5e1' : '#9ca3af'}
+                placeholderTextColor={isLocked ? '#475569' : '#64748b'}
                 value={password}
                 onChangeText={(text) => {
                   setPassword(text);
@@ -241,7 +241,7 @@ export default function LoginScreen() {
                 disabled={loading || isLocked}
                 style={styles.eyeIcon}
               >
-                <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color={isLocked ? '#cbd5e1' : '#6b7280'} />
+                <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color={isLocked ? '#475569' : '#94a3b8'} />
               </TouchableOpacity>
             </View>
 
@@ -292,7 +292,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#020617',
   },
   innerContainer: {
     flex: 1,
@@ -307,53 +307,45 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#eff6ff',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
   },
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#f8fafc',
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#94a3b8',
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 20,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 20,
     padding: 24,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 3,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   lockoutBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fffbeb',
-    borderColor: '#fde68a',
+    backgroundColor: 'rgba(234, 88, 12, 0.1)',
+    borderColor: 'rgba(234, 88, 12, 0.3)',
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
   },
   lockoutText: {
-    color: '#9a3412',
+    color: '#fdba74',
     fontSize: 14,
     fontWeight: '600',
     flex: 1,
@@ -361,22 +353,22 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#334155',
+    color: '#e2e8f0',
     marginBottom: 6,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     marginBottom: 16,
     paddingHorizontal: 14,
   },
   inputWrapperDisabled: {
-    backgroundColor: '#f1f5f9',
-    borderColor: '#e2e8f0',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   inputIcon: {
     marginRight: 10,
@@ -385,10 +377,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     fontSize: 15,
-    color: '#0f172a',
+    color: '#f8fafc',
   },
   inputDisabled: {
-    color: '#94a3b8',
+    color: '#475569',
   },
   eyeIcon: {
     padding: 6,
@@ -396,46 +388,38 @@ const styles = StyleSheet.create({
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
+    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+    borderColor: 'rgba(220, 38, 38, 0.3)',
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
   },
   errorContainerLockout: {
-    backgroundColor: '#fffbeb',
-    borderColor: '#fde68a',
+    backgroundColor: 'rgba(234, 88, 12, 0.1)',
+    borderColor: 'rgba(234, 88, 12, 0.3)',
   },
   errorText: {
-    color: '#dc2626',
+    color: '#fca5a5',
     fontSize: 14,
     fontWeight: '500',
     flex: 1,
   },
   errorTextLockout: {
-    color: '#9a3412',
+    color: '#fdba74',
   },
   button: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#3b82f6',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
   },
   buttonDisabled: {
-    backgroundColor: '#94a3b8',
-    shadowOpacity: 0,
-    elevation: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   buttonLocked: {
     backgroundColor: '#ea580c',
-    shadowColor: '#ea580c',
   },
   buttonContent: {
     flexDirection: 'row',
@@ -449,7 +433,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     textAlign: 'center',
-    color: '#94a3b8',
+    color: '#475569',
     marginTop: 32,
     fontSize: 12,
     fontWeight: '500',

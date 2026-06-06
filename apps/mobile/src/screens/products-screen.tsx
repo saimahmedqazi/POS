@@ -129,7 +129,7 @@ export default function ProductsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color="#3b82f6" />
         <Text style={styles.loadingText}>Loading products...</Text>
       </View>
     );
@@ -137,7 +137,7 @@ export default function ProductsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar barStyle="light-content" backgroundColor="#020617" />
       
       {/* Custom Header */}
       <View style={styles.header}>
@@ -152,7 +152,7 @@ export default function ProductsScreen() {
             onPress={() => navigation.navigate('Orders')}
             activeOpacity={0.7}
           >
-            <Feather name="clipboard" size={20} color="#334155" />
+            <Feather name="clipboard" size={20} color="#f8fafc" />
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -160,7 +160,7 @@ export default function ProductsScreen() {
             onPress={() => navigation.navigate('Cart')}
             activeOpacity={0.7}
           >
-            <Feather name="shopping-bag" size={20} color="#334155" />
+            <Feather name="shopping-bag" size={20} color="#f8fafc" />
             {totalCartQuantity > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
@@ -203,7 +203,7 @@ export default function ProductsScreen() {
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Feather name="x-circle" size={18} color="#cbd5e1" />
+              <Feather name="x-circle" size={18} color="#475569" />
             </TouchableOpacity>
           )}
         </View>
@@ -218,7 +218,8 @@ export default function ProductsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={refreshProducts}
-            colors={['#2563eb']}
+            colors={['#3b82f6']}
+            tintColor="#3b82f6"
           />
         }
         renderItem={({ item }) => (
@@ -244,7 +245,7 @@ export default function ProductsScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Feather name="package" size={48} color="#cbd5e1" />
+            <Feather name="package" size={48} color="#475569" />
             <Text style={styles.emptyText}>No products found</Text>
           </View>
         }
@@ -256,18 +257,18 @@ export default function ProductsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#020617',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#020617',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#64748b',
+    color: '#94a3b8',
     fontWeight: '500',
   },
   header: {
@@ -276,21 +277,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 14,
-    backgroundColor: '#fff',
+    backgroundColor: '#0f172a',
     borderBottomWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   headerSubtitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#94a3b8',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#f8fafc',
     letterSpacing: -0.5,
   },
   headerActions: {
@@ -302,13 +303,16 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   logoutButton: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+    borderColor: 'rgba(220, 38, 38, 0.2)',
   },
   badge: {
     position: 'absolute',
@@ -322,7 +326,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#0f172a',
   },
   badgeText: {
     color: '#fff',
@@ -333,29 +337,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fffbeb',
+    backgroundColor: 'rgba(234, 88, 12, 0.1)',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderColor: '#fef3c7',
+    borderColor: 'rgba(234, 88, 12, 0.2)',
   },
   offlineBannerText: {
     fontSize: 12,
-    color: '#9a3412',
+    color: '#fdba74',
     fontWeight: '600',
   },
   searchContainer: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#020617',
     borderBottomWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     borderRadius: 12,
     paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   searchIcon: {
     marginRight: 8,
@@ -364,24 +370,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#0f172a',
+    color: '#f8fafc',
   },
   listContent: {
     padding: 20,
     flexGrow: 1,
   },
   productCard: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -396,26 +397,21 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#f8fafc',
     lineHeight: 22,
   },
   productPrice: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#3b82f6',
   },
   addButton: {
     flexDirection: 'row',
-    backgroundColor: '#2563eb',
+    backgroundColor: '#3b82f6',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 10,
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   addButtonText: {
     color: '#fff',
@@ -430,7 +426,7 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#94a3b8',
+    color: '#64748b',
     fontWeight: '500',
   },
 });

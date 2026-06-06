@@ -31,14 +31,17 @@ const screenOptions: NativeStackNavigationOptions =
 
     headerTitleStyle: {
       fontWeight: '700',
+      color: '#f8fafc',
     },
 
     headerStyle: {
-      backgroundColor: '#fff',
+      backgroundColor: '#0f172a',
     },
+    
+    headerTintColor: '#f8fafc',
 
     contentStyle: {
-      backgroundColor: '#f9fafb',
+      backgroundColor: '#020617',
     },
 
     animation: 'slide_from_right',
@@ -49,8 +52,10 @@ const navigationTheme = {
 
   colors: {
     ...DefaultTheme.colors,
-
-    background: '#f9fafb',
+    background: '#020617',
+    card: '#0f172a',
+    text: '#f8fafc',
+    border: 'rgba(255,255,255,0.05)',
   },
 };
 
