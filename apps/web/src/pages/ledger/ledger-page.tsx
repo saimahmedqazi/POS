@@ -131,8 +131,10 @@ export default function LedgerPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div>
-          Loading ledger...
+        <div className="flex items-center justify-center h-full min-h-[50vh]">
+          <div className="text-foreground/70 text-lg font-medium animate-pulse">
+            Loading ledger...
+          </div>
         </div>
       </AppLayout>
     );

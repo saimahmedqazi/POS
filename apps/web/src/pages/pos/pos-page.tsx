@@ -18,8 +18,11 @@ import {
 
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useBarcodeScanner } from '../../hooks/use-barcode-scanner';
+import { Trash2, Maximize2, Minimize2, Loader2, Info } from 'lucide-react';
 
 import AppLayout from '../../layouts/app-layout';
+
+import Toast from '../../components/ui/toast';
 
 import {
   getProducts,
@@ -177,6 +180,17 @@ export default function PosPage() {
     setCashReceived,
   ] = useState('');
 
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showConfirmClear, setShowConfirmClear] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
   const cashReceivedNumber =
     Number(
       cashReceived || 0,
@@ -314,7 +328,7 @@ export default function PosPage() {
       exactMatch.quantity || 0;
 
     if (stock <= 0) {
-      alert(
+      setErrorMessage(
         'Out of stock',
       );
 
@@ -368,9 +382,12 @@ export default function PosPage() {
   useHotkeys('esc', (e) => {
     if (items.length > 0) {
       e.preventDefault();
-      if (confirm('Clear cart?')) {
+      if (!showConfirmClear) {
+        setShowConfirmClear(true);
+      } else {
         clearCart();
         setCashReceived('');
+        setShowConfirmClear(false);
         setTimeout(() => searchInputRef.current?.focus(), 50);
       }
     }
@@ -438,7 +455,7 @@ export default function PosPage() {
     if (
       match.quantity <= 0
     ) {
-      alert(
+      setErrorMessage(
         'Out of stock',
       );
 
@@ -479,7 +496,7 @@ export default function PosPage() {
       if (
         items.length === 0
       ) {
-        alert(
+        setErrorMessage(
           'Cart is empty',
         );
 
@@ -489,7 +506,7 @@ export default function PosPage() {
       if (
         total < 0
       ) {
-        alert(
+        setErrorMessage(
           'Cart total cannot be negative',
         );
 
@@ -503,7 +520,7 @@ export default function PosPage() {
         cashReceivedNumber <
         total
       ) {
-        alert(
+        setErrorMessage(
           'Insufficient cash received',
         );
 
@@ -516,7 +533,7 @@ export default function PosPage() {
         'CREDIT' &&
         !selectedCustomerId
       ) {
-        alert(
+        setErrorMessage(
           'You must select a customer for credit sales',
         );
 
@@ -546,7 +563,7 @@ export default function PosPage() {
           if (
             !latestProduct
           ) {
-            alert(
+            setErrorMessage(
               `${item.name} no longer exists`,
             );
 
@@ -559,7 +576,7 @@ export default function PosPage() {
               0,
             ) < item.quantity
           ) {
-            alert(
+            setErrorMessage(
               `Insufficient stock for ${item.name}`,
             );
 
@@ -607,7 +624,7 @@ export default function PosPage() {
               Number(item.price),
             )
           ) {
-            alert(
+            setErrorMessage(
               `Invalid product price: ${item.name}`,
             );
 
@@ -620,7 +637,7 @@ export default function PosPage() {
             ) ||
             Number(item.quantity) <= 0
           ) {
-            alert(
+            setErrorMessage(
               `Invalid quantity: ${item.name}`,
             );
 
@@ -722,7 +739,7 @@ export default function PosPage() {
           false,
         );
 
-        alert(
+        setErrorMessage(
           error instanceof Error
             ? error.message
             : 'Failed to complete sale.',
@@ -752,7 +769,7 @@ export default function PosPage() {
         );
 
       if (!match) {
-        alert(
+        setErrorMessage(
           'Product not found',
         );
 
@@ -763,7 +780,7 @@ export default function PosPage() {
         match.quantity || 0;
 
       if (stock <= 0) {
-        alert(
+        setErrorMessage(
           'Out of stock',
         );
 
@@ -793,9 +810,11 @@ export default function PosPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div>
-          Loading
-          products...
+        <div className="flex flex-col items-center justify-center h-full min-h-[50vh] gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="text-foreground/70 font-medium animate-pulse">
+            Loading products...
+          </div>
         </div>
       </AppLayout>
     );
@@ -804,15 +823,45 @@ export default function PosPage() {
   return (
     <AppLayout>
       <div className="h-[calc(100vh-100px)] flex flex-col">
-        <PageHeader
-          title="POS Terminal"
-          subtitle="Cashier workspace"
-          
-        />
+        <div className="flex items-start justify-between mb-4">
+          <PageHeader
+            title="POS Terminal"
+            subtitle="Cashier workspace"
+          />
 
-        <div className="grid flex-1 min-h-0 grid-cols-1 xl:grid-cols-3 gap-2">
+          {!isFullscreen && (
+            <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground font-medium bg-surface border border-border px-3 py-2 rounded-xl shadow-sm">
+              <span className="bg-background px-2 py-1 rounded-md border border-border">F2 Search</span>
+              <span className="bg-background px-2 py-1 rounded-md border border-border">F3 Scan</span>
+              <span className="bg-background px-2 py-1 rounded-md border border-border">F9 Checkout</span>
+              <span className="bg-background px-2 py-1 rounded-md border border-border">ESC Clear</span>
+            </div>
+          )}
+        </div>
+        
+        {showConfirmClear && (
+          <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 px-4 py-3 rounded-xl flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2 font-medium text-sm">
+              <Info size={16} /> Press ESC again or click confirm to empty the cart.
+            </div>
+            <div className="flex gap-2">
+              <Button variant="secondary" className="!py-1.5 !px-3 !text-xs" onClick={() => setShowConfirmClear(false)}>Cancel</Button>
+              <Button variant="danger" className="!py-1.5 !px-3 !text-xs" onClick={() => {
+                clearCart();
+                setCashReceived('');
+                setShowConfirmClear(false);
+                setTimeout(() => searchInputRef.current?.focus(), 50);
+              }}>Clear Cart</Button>
+            </div>
+          </div>
+        )}
+
+        <Toast message={errorMessage} variant="error" onClose={() => setErrorMessage('')} />
+        <Toast message={successMessage} variant="success" onClose={() => setSuccessMessage('')} />
+
+        <div className="flex flex-col lg:grid lg:grid-cols-[2fr_1fr] flex-1 min-h-0 gap-3">
           {/* PRODUCTS */}
-          <div className="xl:col-span-2 min-h-0">
+          <div className="min-h-[50vh] lg:min-h-0">
             <Card className="h-full flex flex-col">
               <div className="flex justify-between items-center mb-4">
                 <div className="text-sm text-muted-foreground">
@@ -824,6 +873,7 @@ export default function PosPage() {
                 <div className="flex gap-2">
                   <Button
                     variant="secondary"
+                    className="flex items-center gap-2"
                     onClick={() => {
                       if (
                         !document.fullscreenElement
@@ -834,7 +884,15 @@ export default function PosPage() {
                       }
                     }}
                   >
-                    Full Screen
+                    {isFullscreen ? (
+                      <>
+                        <Minimize2 size={16} /> Exit Full Screen
+                      </>
+                    ) : (
+                      <>
+                        <Maximize2 size={16} /> Full Screen
+                      </>
+                    )}
                   </Button>
 
                   <Button
@@ -881,7 +939,7 @@ export default function PosPage() {
                   </div>
                 )}
 <div className="flex-1 overflow-y-auto">
-              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                 {filteredProducts.map(
                   (
                     product,
@@ -890,7 +948,7 @@ export default function PosPage() {
                       key={
                         product.id
                       }
-                      className="border border-slate-100 hover:shadow-md transition p-3"
+                      className="border border-border hover:shadow-md transition p-3"
                     >
                       <div className="flex items-start justify-between">
                         <div>
@@ -953,7 +1011,7 @@ export default function PosPage() {
                             if (
                               stock <= 0
                             ) {
-                              alert(
+                              setErrorMessage(
                                 'Out of stock',
                               );
 
@@ -1007,159 +1065,83 @@ export default function PosPage() {
                         item: any,
                       ) => (
                         <div
-                          key={
-                            item.productId
-                          }
-                          className="border border-slate-200 rounded-2xl p-3"
+                          key={item.productId}
+                          className="border border-border rounded-2xl p-3"
                         >
-                          <div className="flex justify-between">
+                          <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="font-semibold">
-                                {
-                                  item.name
-                                }
+                              <h4 className="font-semibold text-foreground">
+                                {item.name}
                               </h4>
-
-                              <p className="text-muted-foreground text-sm mt-1">
-                                Rs.{' '}
-                                {
-                                  item.price
-                                }
-                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <p className="font-bold text-primary">
+                                  Rs. {item.price}
+                                </p>
+                                <span className="bg-surface border border-border px-1.5 py-0.5 rounded text-[10px] font-medium text-muted-foreground">
+                                  Stock: {item.stock}
+                                </span>
+                              </div>
                             </div>
 
                             <Button
                               variant="danger"
-                              className="px-1 py-1"
-                              disabled={
-                                checkoutLoading
-                              }
-                              onClick={() =>
-                                removeItem(
-                                  item.productId,
-                                )
-                              }
+                              className="!p-2"
+                              disabled={checkoutLoading}
+                              onClick={() => removeItem(item.productId)}
                             >
-                              x
+                              <Trash2 size={16} />
                             </Button>
                           </div>
 
-                          <div className="flex items-center gap-3 mt-2">
+                          <div className="flex items-center gap-3 mt-4">
                             <Button
-                              variant="secondary"
-                              className="w-10 h-10 p-0 text-lg font-bold"
-                              disabled={
-                                checkoutLoading ||
-                                item.quantity <=
-                                1
-                              }
-                              onClick={() =>
-                                decreaseQuantity(
-                                  item.productId,
-                                )
-                              }
+                              variant={item.quantity <= 1 ? 'danger' : 'secondary'}
+                              className="w-12 h-12 p-0 text-xl font-bold flex items-center justify-center shrink-0"
+                              disabled={checkoutLoading}
+                              onClick={() => {
+                                if (item.quantity <= 1) {
+                                  removeItem(item.productId);
+                                } else {
+                                  decreaseQuantity(item.productId);
+                                }
+                              }}
                             >
                               −
                             </Button>
 
                             <Input
-                              disabled={
-                                checkoutLoading
-                              }
+                              disabled={checkoutLoading}
                               type="number"
                               min="1"
-                              max={
-                                item.stock
-                              }
-                              value={
-                                item.quantity
-                              }
-                              onChange={(
-                                e,
-                              ) => {
-                                const raw =
-                                  e.target
-                                    .value;
-
-                                if (
-                                  !raw.trim()
-                                ) {
+                              max={item.stock}
+                              value={item.quantity}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                if (!raw.trim()) return;
+                                const value = Number(raw);
+                                if (!Number.isFinite(value)) return;
+                                const sanitized = Math.floor(value);
+                                if (sanitized < 1) {
+                                  setQuantity(item.productId, 1);
                                   return;
                                 }
-
-                                const value =
-                                  Number(
-                                    raw,
-                                  );
-
-                                if (
-                                  !Number.isFinite(
-                                    value,
-                                  )
-                                ) {
+                                if (sanitized > item.stock) {
+                                  setQuantity(item.productId, item.stock);
                                   return;
                                 }
-
-                                const sanitized =
-                                  Math.floor(
-                                    value,
-                                  );
-
-                                if (
-                                  sanitized <
-                                  1
-                                ) {
-                                  setQuantity(
-                                    item.productId,
-                                    1,
-                                  );
-
-                                  return;
-                                }
-
-                                if (
-                                  sanitized >
-                                  item.stock
-                                ) {
-                                  setQuantity(
-                                    item.productId,
-                                    item.stock,
-                                  );
-
-                                  return;
-                                }
-
-                                setQuantity(
-                                  item.productId,
-                                  sanitized,
-                                );
+                                setQuantity(item.productId, sanitized);
                               }}
-                              className="w-20 text-center appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              className="flex-1 h-12 text-center text-lg font-bold appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
 
                             <Button
                               variant="secondary"
-                              className="w-10 h-10 p-0 text-lg font-bold"
-                              disabled={
-                                checkoutLoading ||
-                                item.quantity >=
-                                item.stock
-                              }
-                              onClick={() =>
-                                increaseQuantity(
-                                  item.productId,
-                                )
-                              }
+                              className="w-12 h-12 p-0 text-xl font-bold flex items-center justify-center shrink-0"
+                              disabled={checkoutLoading || item.quantity >= item.stock}
+                              onClick={() => increaseQuantity(item.productId)}
                             >
                               +
                             </Button>
-
-                            <div className="ml-auto text-xs text-muted-foreground">
-                              Stock:{' '}
-                              {
-                                item.stock
-                              }
-                            </div>
                           </div>
                         </div>
                       ),

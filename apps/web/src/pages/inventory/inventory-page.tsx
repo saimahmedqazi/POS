@@ -13,6 +13,8 @@ import Input from '../../components/ui/input';
 
 import Modal from '../../components/ui/modal';
 
+import Toast from '../../components/ui/toast';
+
 import PageHeader from '../../components/ui/page-header';
 
 import {
@@ -185,12 +187,6 @@ export default function InventoryPage() {
           ),
         );
         
-        const latestProducts =
-  await getProducts();
-
-await syncProductsToCloud(
-  latestProducts as any[],
-);
         const transactions =
   await getInventoryTransactions();
 
@@ -212,34 +208,6 @@ setInventoryTransactions(
         setLoading(false);
       }
     };
-
-    useEffect(() => {
-  if (!errorMessage) {
-    return;
-  }
-
-  const timeout =
-    setTimeout(() => {
-      setErrorMessage('');
-    }, 3000);
-
-  return () =>
-    clearTimeout(timeout);
-}, [errorMessage]);
-
-useEffect(() => {
-  if (!successMessage) {
-    return;
-  }
-
-  const timeout =
-    setTimeout(() => {
-      setSuccessMessage('');
-    }, 2500);
-
-  return () =>
-    clearTimeout(timeout);
-}, [successMessage]);
   useEffect(() => {
     loadProducts();
     
@@ -360,11 +328,15 @@ useEffect(() => {
           ...products,
         ]);
         const latestProducts =
-  await getProducts();
+          await getProducts();
 
-await syncProductsToCloud(
-  latestProducts as any[],
-);
+        try {
+          await syncProductsToCloud(
+            latestProducts as any[],
+          );
+        } catch (syncError) {
+          console.warn('Background sync failed', syncError);
+        }
 
         resetCreateForm();
 
@@ -490,9 +462,13 @@ await syncProductsToCloud(
 const latestProducts =
   await getProducts();
 
-await syncProductsToCloud(
-  latestProducts as any[],
-);
+try {
+  await syncProductsToCloud(
+    latestProducts as any[],
+  );
+} catch (syncError) {
+  console.warn('Background sync failed', syncError);
+}
 
 setEditingProduct(
   null,
@@ -612,9 +588,13 @@ setSuccessMessage(
 const latestProducts =
   await getProducts();
 
-await syncProductsToCloud(
-  latestProducts as any[],
-);
+try {
+  await syncProductsToCloud(
+    latestProducts as any[],
+  );
+} catch (syncError) {
+  console.warn('Background sync failed', syncError);
+}
 
 const transactions =
   await getInventoryTransactions();
@@ -678,11 +658,15 @@ setEditingProduct({
           ),
         );
         const latestProducts =
-  await getProducts();
+          await getProducts();
 
-await syncProductsToCloud(
-  latestProducts as any[],
-);
+        try {
+          await syncProductsToCloud(
+            latestProducts as any[],
+          );
+        } catch (syncError) {
+          console.warn('Background sync failed', syncError);
+        }
 
         setSuccessMessage(
           'Product archived successfully',
@@ -707,8 +691,10 @@ await syncProductsToCloud(
   if (loading) {
     return (
       <AppLayout>
-        <div>
-          Loading inventory...
+        <div className="flex items-center justify-center h-full min-h-[50vh]">
+          <div className="text-foreground/70 text-lg font-medium animate-pulse">
+            Loading inventory...
+          </div>
         </div>
       </AppLayout>
     );
@@ -722,49 +708,8 @@ await syncProductsToCloud(
           subtitle="Product stock management"
         />
 
-        {errorMessage && (
-         <div className="fixed top-4 right-4 z-[9999] w-full max-w-md rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <span>
-                {errorMessage}
-              </span>
-
-              <button
-                onClick={() =>
-                  setErrorMessage(
-                    '',
-                  )
-                }
-                className="text-red-500 hover:text-red-700"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="fixed top-4 right-4 z-[9999] w-full max-w-md rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <span>
-                {
-                  successMessage
-                }
-              </span>
-
-              <button
-                onClick={() =>
-                  setSuccessMessage(
-                    '',
-                  )
-                }
-                className="text-green-500 hover:text-green-700"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
+        <Toast message={errorMessage} variant="error" onClose={() => setErrorMessage('')} />
+        <Toast message={successMessage} variant="success" onClose={() => setSuccessMessage('')} />
 
         <Card className="mb-6">
           <h2 className="text-xl font-semibold mb-4">
@@ -978,10 +923,11 @@ await syncProductsToCloud(
                   <TableCell>
                     <div
                       className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
-                        product.quantity <=
-                        5
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-green-100 text-green-700'
+                        product.quantity !== undefined
+                          ? product.quantity <= 5
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                       }`}
                     >
                       {
@@ -1029,7 +975,7 @@ await syncProductsToCloud(
         Inventory History
       </h2>
 
-      <p className="text-slate-500 mt-1">
+      <p className="text-muted-foreground mt-1">
         Recent stock movements
       </p>
     </div>
@@ -1038,7 +984,7 @@ await syncProductsToCloud(
   <div className="overflow-x-auto">
     <table className="w-full">
       <thead>
-        <tr className="border-b border-slate-200">
+        <tr className="border-b border-border">
           <th className="text-left py-3 px-2">
             Product
           </th>
@@ -1070,7 +1016,7 @@ await syncProductsToCloud(
               key={
                 transaction.id
               }
-              className="border-b border-slate-100"
+              className="border-b border-border/50"
             >
               <td className="py-3 px-2 font-medium">
                 {
@@ -1090,13 +1036,13 @@ await syncProductsToCloud(
                 }
               </td>
 
-              <td className="py-3 px-2 text-slate-500">
+              <td className="py-3 px-2 text-muted-foreground">
                 {
                   transaction.notes
                 }
               </td>
 
-              <td className="py-3 px-2 text-slate-500 text-sm">
+              <td className="py-3 px-2 text-muted-foreground text-sm">
                 {new Date(
                   transaction.created_at,
                 ).toLocaleString()}
@@ -1122,92 +1068,107 @@ await syncProductsToCloud(
         }
       >
         <div className="grid grid-cols-2 gap-4">
-          <Input
-            type="text"
-            value={
-              editingProduct?.name ||
-              ''
-            }
-            onChange={(e) =>
-              setEditingProduct({
-                ...editingProduct!,
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-muted-foreground ml-1">Product Name</label>
+            <Input
+              type="text"
+              value={
+                editingProduct?.name ||
+                ''
+              }
+              onChange={(e) =>
+                setEditingProduct({
+                  ...editingProduct!,
 
-                name:
-                  e.target.value,
-              })
-            }
-          />
-
-          <Input
-            type="text"
-            value={
-              editingProduct?.sku ||
-              ''
-            }
-            onChange={(e) =>
-              setEditingProduct({
-                ...editingProduct!,
-
-                sku:
-                  e.target.value,
-              })
-            }
-          />
-
-          <Input
-            type="text"
-            value={
-              editingProduct?.barcode ||
-              ''
-            }
-            onChange={(e) =>
-              setEditingProduct({
-                ...editingProduct!,
-
-                barcode:
-                  e.target.value,
-              })
-            }
-          />
-
-          <Input
-            type="number"
-            value={
-              editingProduct?.salePrice ||
-              ''
-            }
-            onChange={(e) =>
-              setEditingProduct({
-                ...editingProduct!,
-
-                salePrice:
-                  Number(
+                  name:
                     e.target.value,
-                  ),
-              })
-            }
-          />
+                })
+              }
+            />
+          </div>
 
-          <Input
-            type="number"
-            value={
-              editingProduct?.costPrice ||
-              ''
-            }
-            onChange={(e) =>
-              setEditingProduct({
-                ...editingProduct!,
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-muted-foreground ml-1">SKU</label>
+            <Input
+              type="text"
+              value={
+                editingProduct?.sku ||
+                ''
+              }
+              onChange={(e) =>
+                setEditingProduct({
+                  ...editingProduct!,
 
-                costPrice:
-                  Number(
+                  sku:
                     e.target.value,
-                  ),
-              })
-            }
-          />
+                })
+              }
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-muted-foreground ml-1">Barcode</label>
+            <Input
+              type="text"
+              value={
+                editingProduct?.barcode ||
+                ''
+              }
+              onChange={(e) =>
+                setEditingProduct({
+                  ...editingProduct!,
+
+                  barcode:
+                    e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-muted-foreground ml-1">Sale Price</label>
+            <Input
+              type="number"
+              value={
+                editingProduct?.salePrice ||
+                ''
+              }
+              onChange={(e) =>
+                setEditingProduct({
+                  ...editingProduct!,
+
+                  salePrice:
+                    Number(
+                      e.target.value,
+                    ),
+                })
+              }
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-muted-foreground ml-1">Cost Price</label>
+            <Input
+              type="number"
+              value={
+                editingProduct?.costPrice ||
+                ''
+              }
+              onChange={(e) =>
+                setEditingProduct({
+                  ...editingProduct!,
+
+                  costPrice:
+                    Number(
+                      e.target.value,
+                    ),
+                })
+              }
+            />
+          </div>
         </div>
 
-        <div className="border-t pt-4 mt-6">
+        <div className="border-t border-border pt-4 mt-6">
           <h3 className="font-semibold mb-2">
             Stock Adjustment
           </h3>
@@ -1293,12 +1254,12 @@ await syncProductsToCloud(
         }
       >
         <div className="space-y-4">
-          <div className="rounded-2xl bg-red-50 border border-red-200 p-4">
-            <h3 className="font-semibold text-red-700 mb-2">
+          <div className="rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-4">
+            <h3 className="font-semibold text-red-700 dark:text-red-400 mb-2">
               Confirm Archive
             </h3>
 
-            <div className="space-y-1 text-sm text-slate-700">
+            <div className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
               <p>
                 <strong>
                   Product:

@@ -13,6 +13,8 @@ import Input from '../../components/ui/input';
 
 import Modal from '../../components/ui/modal';
 
+import Toast from '../../components/ui/toast';
+
 import PageHeader from '../../components/ui/page-header';
 
 import {
@@ -543,8 +545,10 @@ export default function CustomersPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div>
-          Loading customers...
+        <div className="flex items-center justify-center h-full min-h-[50vh]">
+          <div className="text-foreground/70 text-lg font-medium animate-pulse">
+            Loading customers...
+          </div>
         </div>
       </AppLayout>
     );
@@ -572,45 +576,8 @@ export default function CustomersPage() {
           </Button>
         </div>
 
-        {errorMessage && (
-          <div className="fixed top-4 right-4 z-[9999] w-full max-w-md rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <span>
-                {errorMessage}
-              </span>
-
-              <button
-                onClick={() =>
-                  setErrorMessage(
-                    '',
-                  )
-                }
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="fixed top-4 right-4 z-[9999] w-full max-w-md rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <span>
-                {successMessage}
-              </span>
-
-              <button
-                onClick={() =>
-                  setSuccessMessage(
-                    '',
-                  )
-                }
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
+        <Toast message={errorMessage} variant="error" onClose={() => setErrorMessage('')} />
+        <Toast message={successMessage} variant="success" onClose={() => setSuccessMessage('')} />
 
         <Card className="p-0 overflow-hidden">
           <Table>
@@ -658,8 +625,8 @@ export default function CustomersPage() {
     <span
       className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
         customer.retailer_disabled
-          ? 'bg-red-100 text-red-700'
-          : 'bg-blue-100 text-blue-700'
+          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
       }`}
     >
       {customer.retailer_disabled
@@ -681,8 +648,8 @@ export default function CustomersPage() {
                         className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold ${
                           customer.current_balance >
                           0
-                            ? 'bg-red-50 text-red-700'
-                            : 'bg-green-50 text-green-700'
+                            ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            : 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                         }`}
                       >
                         <span className="text-base">
@@ -781,8 +748,8 @@ export default function CustomersPage() {
       variant="secondary"
       className={`px-3 py-2 ${
         customer.retailer_disabled
-          ? 'border border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
-          : 'border border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+          ? 'border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20'
+          : 'border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20'
       }`}
       disabled={saving}
       onClick={async () => {
@@ -832,7 +799,7 @@ export default function CustomersPage() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="p-8 text-center text-slate-500"
+                    className="p-8 text-center text-muted-foreground"
                   >
                     No customers found
                   </td>
@@ -983,7 +950,7 @@ export default function CustomersPage() {
           </p>
 
           <div className="mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-50 text-red-700 font-semibold">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-semibold">
               <span>
                 ↑
               </span>
@@ -1053,12 +1020,12 @@ export default function CustomersPage() {
           }
         >
           <div className="space-y-4">
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-              <p className="font-semibold text-red-700">
-                Are you sure you want to delete this customer?
-              </p>
+            <div className="rounded-2xl border border-red-200 bg-red-50 dark:border-red-500/20 dark:bg-red-500/10 p-4">
+              <h3 className="font-semibold text-red-700 dark:text-red-400 mb-2">
+                Confirm Delete
+              </h3>
 
-              <div className="mt-4 space-y-2 text-sm">
+              <div className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
                 <p>
                   <strong>
                     Name:

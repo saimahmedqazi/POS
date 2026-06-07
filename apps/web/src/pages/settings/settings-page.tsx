@@ -13,6 +13,10 @@ import Button from '../../components/ui/button';
 
 import PageHeader from '../../components/ui/page-header';
 
+import Toast from '../../components/ui/toast';
+
+import Modal from '../../components/ui/modal';
+
 
 import {
   createCloudBackup,
@@ -47,8 +51,12 @@ export default function SettingsPage() {
         setUpdateStatus('You are on the latest version.');
       }
     } catch (e: any) {
-      console.error(e);
-      setUpdateStatus('Update check failed (Is Updater configured?).');
+      if (e?.toString().includes('Could not fetch a valid release JSON')) {
+        setUpdateStatus('No new release available yet.');
+      } else {
+        console.error(e);
+        setUpdateStatus('Update check failed.');
+      }
     } finally {
       setIsCheckingUpdate(false);
     }
@@ -89,6 +97,16 @@ export default function SettingsPage() {
     string | null
   >(null);
 
+  const [
+    restoreConfirmOpen,
+    setRestoreConfirmOpen,
+  ] = useState(false);
+  
+  const [
+    pendingRestoreId,
+    setPendingRestoreId,
+  ] = useState<string | null>(null);
+
   async function handleLoadBackups() {
     try {
       setLoadingBackups(true);
@@ -106,7 +124,7 @@ export default function SettingsPage() {
         error,
       );
 
-      alert(
+      setErrorMessage(
         'Failed loading backups',
       );
     } finally {
@@ -125,33 +143,23 @@ export default function SettingsPage() {
 
 
 
-  async function handleCloudRestore(
-    backupId: string,
-  ) {
-    const confirmed =
-      confirm(
-        'This will replace ALL local data. Continue?',
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
+  async function executeCloudRestore() {
+    if (!pendingRestoreId) return;
     try {
       setRestoringBackupId(
-        backupId,
+        pendingRestoreId,
       );
 
       const backupData =
         await getCloudBackupById(
-          backupId,
+          pendingRestoreId,
         );
 
       await restoreCloudBackup(
         backupData,
       );
 
-      alert(
+      setSuccessMessage(
         'Restore completed successfully. Please restart the application.',
       );
     } catch (error) {
@@ -159,13 +167,15 @@ export default function SettingsPage() {
         error,
       );
 
-      alert(
+      setErrorMessage(
         'Restore failed',
       );
     } finally {
       setRestoringBackupId(
         null,
       );
+      setRestoreConfirmOpen(false);
+      setPendingRestoreId(null);
     }
   }
 
@@ -177,50 +187,41 @@ export default function SettingsPage() {
           subtitle="Appearance, Backup and Restore"
         />
 
-        {errorMessage && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-            <div className="flex items-center justify-between">
-              <span>
-                {errorMessage}
-              </span>
-
+        <Modal
+          open={restoreConfirmOpen}
+          onClose={() => {
+            setRestoreConfirmOpen(false);
+            setPendingRestoreId(null);
+          }}
+          title="Restore Cloud Backup"
+        >
+          <div className="p-6">
+            <p className="text-muted-foreground mb-6">
+              This will replace ALL local data with the backup from the cloud. Continue?
+            </p>
+            <div className="flex justify-end gap-3">
               <button
-                onClick={() =>
-                  setErrorMessage(
-                    '',
-                  )
-                }
-                className="text-red-500 hover:text-red-700"
+                onClick={() => {
+                  setRestoreConfirmOpen(false);
+                  setPendingRestoreId(null);
+                }}
+                className="px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
-                ✕
+                Cancel
+              </button>
+              <button
+                onClick={executeCloudRestore}
+                disabled={restoringBackupId !== null}
+                className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+              >
+                {restoringBackupId ? 'Restoring...' : 'Restore'}
               </button>
             </div>
           </div>
-        )}
+        </Modal>
 
-        {successMessage && (
-          <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
-            <div className="flex items-center justify-between">
-              <span>
-                {
-                  successMessage
-                }
-              </span>
-
-
-              <button
-                onClick={() =>
-                  setSuccessMessage(
-                    '',
-                  )
-                }
-                className="text-green-500 hover:text-green-700"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
+        <Toast message={errorMessage} variant="error" onClose={() => setErrorMessage('')} />
+        <Toast message={successMessage} variant="success" onClose={() => setSuccessMessage('')} />
 
         <Card>
           <h2 className="text-xl font-semibold mb-4">Appearance</h2>
@@ -305,7 +306,7 @@ export default function SettingsPage() {
                     error,
                   );
 
-                  setSuccessMessage(
+                  setErrorMessage(
                     'Backup failed',
                   );
                 }
@@ -330,7 +331,7 @@ export default function SettingsPage() {
           </div>
           {cloudBackups.length >
             0 && (
-              <div className="mt-4 rounded-2xl border border-slate-200">
+              <div className="mt-4 rounded-2xl border border-border">
                 {cloudBackups.map(
                   (
                     backup,
@@ -363,11 +364,10 @@ export default function SettingsPage() {
                           restoringBackupId ===
                           backup.id
                         }
-                        onClick={() =>
-                          handleCloudRestore(
-                            backup.id,
-                          )
-                        }
+                        onClick={() => {
+                          setPendingRestoreId(backup.id);
+                          setRestoreConfirmOpen(true);
+                        }}
                       >
                         {restoringBackupId ===
                           backup.id

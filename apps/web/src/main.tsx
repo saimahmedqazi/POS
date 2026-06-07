@@ -51,9 +51,22 @@ import LicenseActivationPage from './pages/license/license-activation-page';
 import ErrorBoundary from './components/system/error-boundary';
 
 function LoadingScreen() {
+  const isDark = (() => {
+    try {
+      const t = localStorage.getItem('pos-theme');
+      if (t === 'dark') return true;
+      if (t === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return false;
+    } catch {
+      return false;
+    }
+  })();
+  const themeClasses = isDark ? 'bg-[#0f172a] text-[#f8fafc]' : 'bg-[#f8fafc] text-[#0f172a]';
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100">
-      <div className="text-slate-600 text-lg">
+    <div className={`min-h-screen flex flex-col items-center justify-center ${themeClasses}`}>
+      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+      <div className="opacity-70 text-lg font-medium">
         Initializing POS...
       </div>
     </div>
@@ -201,14 +214,26 @@ try {
       error,
     );
 
+    const isDark = (() => {
+      try {
+        const t = localStorage.getItem('pos-theme');
+        if (t === 'dark') return true;
+        if (t === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return false;
+      } catch {
+        return false;
+      }
+    })();
+    const themeClasses = isDark ? 'bg-[#0f172a] text-[#f8fafc]' : 'bg-[#f8fafc] text-[#0f172a]';
+
     root.render(
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-slate-100 p-8 text-center">
+      <div className={`min-h-screen flex flex-col items-center justify-center p-8 text-center ${themeClasses}`}>
         <div className="bg-white/[0.05] border border-white/10 rounded-2xl p-8 max-w-2xl backdrop-blur-xl">
-          <h1 className="text-2xl font-bold mb-4 text-red-400">Failed to initialize POS</h1>
-          <p className="mb-6 text-slate-300">
+          <h1 className="text-2xl font-bold mb-4 text-red-500 dark:text-red-400">Failed to initialize POS</h1>
+          <p className="mb-6 opacity-80">
             This usually happens if another instance of the POS is already running, or if your local database file is locked. Please close any other open POS windows and try again.
           </p>
-          <div className="bg-black/50 p-4 rounded-xl text-sm text-left overflow-auto border border-white/5 font-mono text-red-300">
+          <div className="bg-black/20 p-4 rounded-xl text-sm text-left overflow-auto border border-black/10 dark:border-white/5 font-mono text-red-600 dark:text-red-300">
             {error instanceof Error ? error.message : String(error)}
           </div>
         </div>

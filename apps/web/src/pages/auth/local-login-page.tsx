@@ -75,8 +75,9 @@ export default function LocalLoginPage() {
           return;
         }
 
-        // CLEAR OLD SESSION FIRST
-        localStorage.clear();
+        // Only clear session-related keys, preserve 'pos-theme' and 'pos-accent'
+        localStorage.removeItem('pos-session');
+        localStorage.removeItem('pos-user');
 
         // CREATE SQLITE SESSION
         await createSession(
@@ -166,8 +167,9 @@ window.location.href =
             </Button>
           </div>
 
-          <div className="mt-8 text-center text-sm text-slate-500 font-medium">
-            Local Offline Authentication
+          <div className="mt-8 text-center text-sm text-slate-500 font-medium space-y-1">
+            <p>Local Offline Authentication</p>
+            <p className="text-[10px] uppercase tracking-widest opacity-80">Powered by CYBSOC</p>
           </div>
         </div>
       </div>

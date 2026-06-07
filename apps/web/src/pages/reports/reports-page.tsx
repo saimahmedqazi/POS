@@ -455,8 +455,10 @@ setTopProducts(
   if (loading) {
     return (
       <AppLayout>
-        <div>
-          Loading reports...
+        <div className="flex items-center justify-center h-full min-h-[50vh]">
+          <div className="text-foreground/70 text-lg font-medium animate-pulse">
+            Loading reports...
+          </div>
         </div>
       </AppLayout>
     );
@@ -618,7 +620,7 @@ setTopProducts(
                           dataKey="totalRevenue"
                           nameKey="productName"
                         >
-                          {topProducts.map((entry, index) => (
+                          {topProducts.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>

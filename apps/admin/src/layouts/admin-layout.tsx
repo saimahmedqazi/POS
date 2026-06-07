@@ -19,6 +19,8 @@ import {
   adminLogout,
 } from '../services/admin-auth.service';
 
+import pkgJson from '../../../web/package.json';
+
 type Props = {
   children: ReactNode;
 };
@@ -79,9 +81,12 @@ export default function AdminLayout({
               <h1 className="text-xl font-bold tracking-tight text-white">
                 Admin Portal
               </h1>
-              <p className="text-blue-400/80 text-xs font-medium uppercase tracking-wider mt-1">
-                SaaS Management
+              <p className="text-blue-400/80 text-[10px] font-medium uppercase tracking-widest mt-1">
+                Powered by CYBSOC
               </p>
+              <div className="mt-1.5 inline-block bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded text-[10px] font-bold">
+                v{pkgJson.version}
+              </div>
             </div>
           </div>
         </div>

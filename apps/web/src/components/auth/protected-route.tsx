@@ -23,8 +23,8 @@ export default function ProtectedRoute({
   // LOADING
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <div className="text-slate-600 text-lg">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-foreground/70 text-lg font-medium animate-pulse">
           Loading...
         </div>
       </div>

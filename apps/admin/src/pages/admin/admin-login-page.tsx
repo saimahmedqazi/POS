@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
         password,
       );
 
-      navigate('/admin', {
+      navigate('/', {
         replace: true,
       });
     } catch (err: any) {
@@ -136,8 +136,9 @@ export default function AdminLoginPage() {
             </div>
           </form>
 
-          <div className="mt-8 text-center text-xs font-semibold tracking-wider uppercase text-slate-500">
-            SaaS Administration Portal
+          <div className="mt-8 text-center text-xs font-semibold tracking-wider uppercase text-slate-500 space-y-1.5">
+            <p>SaaS Administration Portal</p>
+            <p className="text-[10px] opacity-80 tracking-widest">Powered by CYBSOC</p>
           </div>
         </Card>
       </div>

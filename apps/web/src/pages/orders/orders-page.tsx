@@ -5,6 +5,8 @@ import {
 
 import AppLayout from '../../layouts/app-layout';
 
+import Toast from '../../components/ui/toast';
+
 import PageHeader from '../../components/ui/page-header';
 
 import Card from '../../components/ui/card';
@@ -532,8 +534,10 @@ const finalInvoiceTotal =
   if (loading) {
     return (
       <AppLayout>
-        <div className="p-6">
-          Loading orders...
+        <div className="flex items-center justify-center h-full min-h-[50vh]">
+          <div className="text-foreground/70 text-lg font-medium animate-pulse">
+            Loading orders...
+          </div>
         </div>
       </AppLayout>
     );
@@ -558,45 +562,8 @@ const finalInvoiceTotal =
           </Button>
         </div>
 
-        {errorMessage && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-            <div className="flex items-center justify-between">
-              <span>
-                {errorMessage}
-              </span>
-
-              <button
-                onClick={() =>
-                  setErrorMessage(
-                    '',
-                  )
-                }
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
-            <div className="flex items-center justify-between">
-              <span>
-                {successMessage}
-              </span>
-
-              <button
-                onClick={() =>
-                  setSuccessMessage(
-                    '',
-                  )
-                }
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
+        <Toast message={errorMessage} variant="error" onClose={() => setErrorMessage('')} />
+        <Toast message={successMessage} variant="success" onClose={() => setSuccessMessage('')} />
 
         <Card className="p-0 overflow-hidden">
           <Table>

@@ -112,8 +112,10 @@ export default function SalesPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div>
-          Loading sales...
+        <div className="flex items-center justify-center h-full min-h-[50vh]">
+          <div className="text-foreground/70 text-lg font-medium animate-pulse">
+            Loading sales history...
+          </div>
         </div>
       </AppLayout>
     );

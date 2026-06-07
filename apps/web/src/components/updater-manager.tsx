@@ -13,8 +13,10 @@ export default function UpdaterManager() {
         if (update) {
           setUpdateAvailable(update);
         }
-      } catch (error) {
-        console.error('Failed to check for updates:', error);
+      } catch (error: any) {
+        if (!error?.toString().includes('Could not fetch a valid release JSON')) {
+          console.error('Failed to check for updates:', error);
+        }
       }
     }
 
@@ -38,7 +40,7 @@ export default function UpdaterManager() {
   if (!updateAvailable) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 bg-surface border border-accent/30 p-4 rounded-2xl shadow-2xl z-50 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+    <div className="fixed bottom-4 right-4 bg-surface border border-primary/30 p-4 rounded-2xl shadow-2xl z-50 flex items-center gap-4 animate-in slide-in-from-bottom-5">
       <div>
         <h3 className="font-bold text-foreground">Update Available</h3>
         <p className="text-xs text-muted-foreground mt-1">
@@ -49,7 +51,7 @@ export default function UpdaterManager() {
       <button
         onClick={handleUpdate}
         disabled={downloading}
-        className="px-4 py-2 rounded-xl bg-accent text-white text-sm font-medium hover:bg-blue-600 transition disabled:opacity-50"
+        className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
       >
         {downloading ? 'Installing...' : 'Restart to Update'}
       </button>

@@ -83,13 +83,7 @@ export async function getDashboardStats() {
       `
     );
 
-  const customersResult = await db.select(
-    `SELECT COUNT(*) as total_customers FROM customers`
-  );
 
-  const ledgerResult = await db.select(
-    `SELECT COALESCE(SUM(current_balance), 0) as total_receivables FROM customers`
-  );
 
   return {
     totalSales:

@@ -4,8 +4,9 @@ import { Window } from '@tauri-apps/api/window';
 import {
   LayoutDashboard, ShoppingCart, Package, BarChart3,
   Users, BookOpen, Settings, Receipt, LogOut,
-  ShieldCheck, ClipboardList, Minus, Square, X, Bell
+  ShieldCheck, ClipboardList, Minus, Square, X, Minimize2
 } from 'lucide-react';
+import pkgJson from '../../package.json';
 import { useAuth } from '../context/auth-context';
 import { getDatabase } from '../lib/database';
 import UpdaterManager from '../components/updater-manager';
@@ -97,7 +98,10 @@ export default function AppLayout({ children }: Props) {
               </div>
               <div>
                 <h1 className="text-2xl font-bold leading-none tracking-tight">POS ERP</h1>
-                <p className="text-muted-foreground text-xs mt-1 font-medium">Offline First</p>
+                <p className="text-muted-foreground text-[10px] mt-1 font-medium uppercase tracking-wide">Powered by CYBSOC</p>
+                <div className="mt-1 inline-block bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] font-bold">
+                  v{pkgJson.version}
+                </div>
               </div>
             </div>
           </div>
@@ -146,8 +150,33 @@ export default function AppLayout({ children }: Props) {
       )}
 
       {/* MAIN */}
-      <main className="flex-1 overflow-auto relative z-10">
-        <div className={hideSidebar ? 'h-[calc(100vh-2rem)] p-4' : 'p-6'}>
+      <main className="flex-1 overflow-auto relative z-10 flex flex-col">
+        {hideSidebar && (
+          <div className="bg-surface/90 backdrop-blur-md border-b border-border py-2 px-4 flex items-center justify-between sticky top-0 z-50">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
+                <ShieldCheck size={14} />
+              </div>
+              <span className="font-bold text-sm">POS Terminal</span>
+              <span className="text-muted-foreground text-xs">v{pkgJson.version}</span>
+            </div>
+            
+            <div className="hidden md:flex items-center gap-3 text-xs text-muted-foreground font-medium">
+              <span className="bg-background px-2 py-1 rounded-md border border-border">F2 Search</span>
+              <span className="bg-background px-2 py-1 rounded-md border border-border">F3 Scan</span>
+              <span className="bg-background px-2 py-1 rounded-md border border-border">F9 Checkout</span>
+              <span className="bg-background px-2 py-1 rounded-md border border-border">ESC Clear</span>
+            </div>
+
+            <button 
+              onClick={() => document.exitFullscreen()}
+              className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+            >
+              <Minimize2 size={14} /> Exit Fullscreen
+            </button>
+          </div>
+        )}
+        <div className={hideSidebar ? 'flex-1 p-2 md:p-4 min-h-0' : 'p-6 flex-1 min-h-0'}>
           {children}
         </div>
       </main>

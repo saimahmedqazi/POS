@@ -99,6 +99,8 @@ const safeNumber = (
     ? Number(value)
     : 0;
 
+import Button from '../../components/ui/button';
+
 export default function DashboardPage() {
   const [
     dailySales,
@@ -314,11 +316,14 @@ export default function DashboardPage() {
         value,
       ).toFixed(2)}`;
 
-  if (loading) {
+  if (loading && !dailySales) {
     return (
       <AppLayout>
-        <div className="p-6">
-          Loading dashboard...
+        <div className="flex flex-col items-center justify-center h-[50vh]">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+          <div className="text-muted-foreground font-medium animate-pulse">
+            Loading dashboard...
+          </div>
         </div>
       </AppLayout>
     );
@@ -333,19 +338,22 @@ export default function DashboardPage() {
             subtitle="Business overview and analytics"
           />
 
-          <button
-            onClick={
-              fetchDashboard
-            }
-            disabled={
-              loading
-            }
-            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl disabled:opacity-50"
+          <Button
+            variant="secondary"
+            disabled={loading}
+            onClick={fetchDashboard}
+            className="flex items-center gap-2"
           >
-            <RefreshCw className="w-4 h-4" />
-
-            Refresh
-          </button>
+            <RefreshCw
+              size={18}
+              className={
+                loading
+                  ? 'animate-spin'
+                  : ''
+              }
+            />
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </Button>
         </div>
 
         {error && (
@@ -375,7 +383,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-green-100 p-4 rounded-2xl">
+              <div className="bg-green-100 dark:bg-green-900/30 p-4 rounded-2xl">
                 <DollarSign className="text-green-600" />
               </div>
             </div>
@@ -401,7 +409,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-blue-100 p-4 rounded-2xl">
+              <div className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-2xl">
                 <ShoppingCart className="text-blue-600" />
               </div>
             </div>
@@ -427,7 +435,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-purple-100 p-4 rounded-2xl">
+              <div className="bg-purple-100 dark:bg-purple-900/30 p-4 rounded-2xl">
                 <TrendingUp className="text-purple-600" />
               </div>
             </div>
@@ -453,7 +461,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-orange-100 p-4 rounded-2xl">
+              <div className="bg-orange-100 dark:bg-orange-900/30 p-4 rounded-2xl">
                 <Package className="text-orange-600" />
               </div>
             </div>
@@ -477,7 +485,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-teal-100 p-4 rounded-2xl">
+              <div className="bg-teal-100 dark:bg-teal-900/30 p-4 rounded-2xl">
                 <Package className="text-teal-600" />
               </div>
             </div>
@@ -501,7 +509,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-red-100 p-4 rounded-2xl">
+              <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-2xl">
                 <DollarSign className="text-red-600" />
               </div>
             </div>

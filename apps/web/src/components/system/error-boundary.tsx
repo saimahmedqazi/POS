@@ -58,13 +58,13 @@ export default class ErrorBoundary extends Component<
         .hasError
     ) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
+        <div className="min-h-screen flex items-center justify-center bg-background px-4">
           <div className="bg-surface text-foreground border border-border rounded-3xl shadow-xl p-8 max-w-lg w-full text-center">
-            <h1 className="text-3xl font-bold text-red-600">
+            <h1 className="text-3xl font-bold text-red-600 dark:text-red-500">
               Something went wrong
             </h1>
 
-            <p className="text-slate-600 mt-4">
+            <p className="text-muted-foreground mt-4">
               The application encountered an unexpected error.
             </p>
 
@@ -73,7 +73,7 @@ export default class ErrorBoundary extends Component<
                 this
                   .handleReload
               }
-              className="mt-8 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-slate-800 transition"
+              className="mt-8 bg-primary text-primary-foreground px-6 py-3 rounded-2xl hover:opacity-90 transition font-medium"
             >
               Reload Application
             </button>

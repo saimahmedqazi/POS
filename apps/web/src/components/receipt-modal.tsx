@@ -74,7 +74,7 @@ export default function ReceiptModal({
                     {item.name}
                   </p>
 
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     {item.quantity} × Rs.{' '}
                     {item.price}
                   </p>
@@ -82,8 +82,8 @@ export default function ReceiptModal({
 
                 <p className="font-semibold">
                   Rs.{' '}
-                  {item.price *
-                    item.quantity}
+                  {(item.price *
+                    item.quantity).toFixed(2)}
                 </p>
               </div>
             ),
@@ -93,6 +93,10 @@ export default function ReceiptModal({
         <div className="border-t border-border mt-6 pt-4 flex justify-between text-xl font-bold">
           <span>Total</span>
           <span className="text-primary">Rs. {total}</span>
+        </div>
+
+        <div className="mt-6 text-center text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
+          Powered by CYBSOC
         </div>
 
         <div className="flex flex-col gap-3 mt-8">
