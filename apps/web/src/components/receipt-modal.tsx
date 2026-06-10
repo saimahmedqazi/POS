@@ -1,3 +1,5 @@
+import SaleInvoiceBill from './sale-invoice-bill';
+
 type CartItem = {
   productId: string;
 
@@ -99,7 +101,7 @@ export default function ReceiptModal({
           Powered by CYBSOC
         </div>
 
-        <div className="flex flex-col gap-3 mt-8">
+        <div className="flex flex-col gap-3 mt-8 no-print">
           <div className="flex gap-3">
             <button
               onClick={() => window.print()}
@@ -126,6 +128,30 @@ export default function ReceiptModal({
             Close
           </button>
         </div>
+      </div>
+      
+      <div className="hidden">
+        {/* Hidden but available for print */}
+        <SaleInvoiceBill
+          data={{
+            invoiceNo: `INV-${Date.now()}`,
+            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-').toUpperCase(),
+            serialNo: '14',
+            items: items.map(i => ({
+              id: i.productId,
+              code: i.productId.slice(0, 5).toUpperCase(),
+              description: i.name,
+              quantity: i.quantity,
+              rate: i.price,
+              discount: 0,
+              total: i.price * i.quantity
+            })),
+            totalQuantity: items.reduce((acc, i) => acc + i.quantity, 0),
+            totalAmount: total,
+            transportation: 0,
+            grandTotal: total
+          }}
+        />
       </div>
     </div>
   );

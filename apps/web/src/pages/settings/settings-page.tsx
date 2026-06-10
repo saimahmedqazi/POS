@@ -181,11 +181,13 @@ export default function SettingsPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <PageHeader
-          title="Settings"
-          subtitle="Appearance, Backup and Restore"
-        />
+      <div className="h-[calc(100vh-100px)] flex flex-col">
+        <div className="flex items-start justify-between mb-4">
+          <PageHeader
+            title="Settings"
+            subtitle="Appearance, Backup and Restore"
+          />
+        </div>
 
         <Modal
           open={restoreConfirmOpen}
@@ -222,6 +224,8 @@ export default function SettingsPage() {
 
         <Toast message={errorMessage} variant="error" onClose={() => setErrorMessage('')} />
         <Toast message={successMessage} variant="success" onClose={() => setSuccessMessage('')} />
+
+        <div className="flex-1 overflow-y-auto pb-6 space-y-6 min-h-0">
 
         <Card>
           <h2 className="text-xl font-semibold mb-4">Appearance</h2>
@@ -381,7 +385,7 @@ export default function SettingsPage() {
             )}
         </Card>
 
-
+        </div>
       </div>
 
 

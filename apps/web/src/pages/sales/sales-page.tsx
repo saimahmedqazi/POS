@@ -24,6 +24,8 @@ import {
   TableCell,
 } from '../../components/ui/table';
 
+import SaleInvoiceBill from '../../components/sale-invoice-bill';
+
 import {
   getLocalSales,
 } from '../../repositories/sale.repository';
@@ -84,6 +86,11 @@ export default function SalesPage() {
     null,
   );
 
+  const [
+    printSale,
+    setPrintSale,
+  ] = useState<Sale | null>(null);
+
  useEffect(() => {
   const loadLocalSales =
     async () => {
@@ -123,14 +130,18 @@ export default function SalesPage() {
 
   return (
     <AppLayout>
-      <div>
-        <PageHeader
-          title="Sales History"
-          subtitle="Sales transactions and invoices"
-        />
+      <div className="h-[calc(100vh-100px)] flex flex-col">
+        <div className="flex items-start justify-between mb-4">
+          <PageHeader
+            title="Sales History"
+            subtitle="Sales transactions and invoices"
+          />
+        </div>
 
-        <Card className="p-0 overflow-hidden">
-          <Table>
+        <div className="flex-1 min-h-0 pb-6">
+          <Card className="h-full flex flex-col p-0 overflow-hidden border border-border">
+            <div className="flex-1 overflow-y-auto">
+              <Table>
             <TableHead>
               <tr>
                 <th className="text-left p-4">
@@ -227,16 +238,31 @@ export default function SalesPage() {
                     </TableCell>
 
                     <TableCell>
-                      <Button
-                        className="px-3 py-2"
-                        onClick={() =>
-                          setSelectedSale(
-                            sale,
-                          )
-                        }
-                      >
-                        View
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="secondary"
+                          className="px-3 py-2"
+                          onClick={() =>
+                            setSelectedSale(
+                              sale,
+                            )
+                          }
+                        >
+                          View
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          className="px-3 py-2"
+                          onClick={() => {
+                            setPrintSale(sale);
+                            setTimeout(() => {
+                              window.print();
+                            }, 100);
+                          }}
+                        >
+                          Print
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ),
@@ -254,8 +280,10 @@ export default function SalesPage() {
                 </tr>
               )}
             </TableBody>
-          </Table>
-        </Card>
+              </Table>
+            </div>
+          </Card>
+        </div>
 
         <Modal
           open={
@@ -411,6 +439,32 @@ export default function SalesPage() {
             </>
           )}
         </Modal>
+
+        <div className="hidden">
+          {printSale && (
+            <SaleInvoiceBill
+              data={{
+                invoiceNo: printSale.id.slice(0, 8).toUpperCase(),
+                date: new Date(printSale.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-').toUpperCase(),
+                serialNo: '14',
+                customerName: printSale.customer?.name,
+                items: printSale.items.map((i, index) => ({
+                  id: i.id || String(index),
+                  code: (i.product?.name || i.product_name || 'N/A').slice(0, 5).toUpperCase(),
+                  description: i.product?.name || i.product_name || 'Product',
+                  quantity: i.quantity,
+                  rate: i.unit_price,
+                  discount: 0, // Since item-level discount is 0
+                  total: i.subtotal
+                })),
+                totalQuantity: printSale.items.reduce((acc, i) => acc + i.quantity, 0),
+                totalAmount: printSale.total_amount,
+                transportation: 0,
+                grandTotal: printSale.final_amount
+              }}
+            />
+          )}
+        </div>
       </div>
     </AppLayout>
   );

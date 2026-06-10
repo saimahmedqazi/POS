@@ -702,16 +702,19 @@ setEditingProduct({
 
   return (
     <AppLayout>
-      <div>
-        <PageHeader
-          title="Inventory"
-          subtitle="Product stock management"
-        />
+      <div className="h-[calc(100vh-100px)] flex flex-col">
+        <div className="flex items-start justify-between mb-4">
+          <PageHeader
+            title="Inventory"
+            subtitle="Product stock management"
+          />
+        </div>
 
         <Toast message={errorMessage} variant="error" onClose={() => setErrorMessage('')} />
         <Toast message={successMessage} variant="success" onClose={() => setSuccessMessage('')} />
 
-        <Card className="mb-6">
+        <div className="flex-1 min-h-0 flex flex-col gap-4 pb-6">
+          <Card className="shrink-0 border border-border">
           <h2 className="text-xl font-semibold mb-4">
             Add Product
           </h2>
@@ -845,7 +848,9 @@ setEditingProduct({
 </div>
         </Card>
 
-        <Table>
+          <Card className="flex-1 flex flex-col p-0 overflow-hidden border border-border">
+            <div className="flex-1 overflow-y-auto">
+              <Table>
           <TableHead>
             <tr>
               <th className="text-left p-4">
@@ -968,7 +973,9 @@ setEditingProduct({
             )}
           </TableBody>
         </Table>
-                  <Card className="p-6 mt-4"> 
+            </div>
+          </Card>
+          <Card className="p-6 shrink-0 border border-border"> 
   <div className="flex items-center justify-between mb-6">
     <div>
       <h2 className="text-2xl font-bold">
@@ -1054,6 +1061,7 @@ setEditingProduct({
     </table>
   </div>
 </Card>
+      </div>
       </div>
 
       <Modal

@@ -556,8 +556,8 @@ export default function CustomersPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="h-[calc(100vh-100px)] flex flex-col">
+        <div className="flex items-start justify-between mb-4">
           <PageHeader
             title="Customers"
             subtitle="Customer accounts and balances"
@@ -579,8 +579,10 @@ export default function CustomersPage() {
         <Toast message={errorMessage} variant="error" onClose={() => setErrorMessage('')} />
         <Toast message={successMessage} variant="success" onClose={() => setSuccessMessage('')} />
 
-        <Card className="p-0 overflow-hidden">
-          <Table>
+        <div className="flex-1 min-h-0 pb-6">
+          <Card className="h-full flex flex-col p-0 overflow-hidden border border-border">
+            <div className="flex-1 overflow-y-auto">
+              <Table>
             <TableHead>
               <tr>
                 <th className="text-left p-4">
@@ -806,8 +808,10 @@ export default function CustomersPage() {
                 </tr>
               )}
             </TableBody>
-          </Table>
-        </Card>
+              </Table>
+            </div>
+          </Card>
+        </div>
 
         <Modal
           open={

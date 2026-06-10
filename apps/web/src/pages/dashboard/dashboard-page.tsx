@@ -331,8 +331,8 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="h-[calc(100vh-100px)] flex flex-col">
+        <div className="flex items-start justify-between mb-4">
           <PageHeader
             title="Dashboard"
             subtitle="Business overview and analytics"
@@ -357,12 +357,13 @@ export default function DashboardPage() {
         </div>
 
         {error && (
-          <div className="bg-red-100 text-red-700 px-4 py-3 rounded-2xl">
+          <div className="bg-red-100 text-red-700 px-4 py-3 rounded-2xl mb-4 shrink-0">
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="flex-1 overflow-y-auto pb-6 space-y-6 min-h-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           <Card>
             <div className="flex items-center justify-between">
               <div>
@@ -516,7 +517,9 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        <div className="mt-8">
+        </div>
+
+        <div>
           <Card>
             <h2 className="text-xl font-bold mb-6">Revenue Over Time (Last 7 Days)</h2>
             <div className="h-[350px] w-full">

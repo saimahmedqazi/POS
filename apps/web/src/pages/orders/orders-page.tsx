@@ -37,6 +37,8 @@ import {
   createLocalSale,
 } from '../../repositories/sale.repository';
 
+import SaleInvoiceBill from '../../components/sale-invoice-bill';
+
 type OrderItem = {
   id: string;
 
@@ -157,6 +159,11 @@ export default function OrdersPage() {
     errorMessage,
     setErrorMessage,
   ] = useState('');
+
+  const [
+    printOrder,
+    setPrintOrder,
+  ] = useState<RetailerOrder | null>(null);
 
   async function loadOrders() {
     try {
@@ -545,8 +552,8 @@ const finalInvoiceTotal =
 
   return (
     <AppLayout>
-      <div className="space-y-6">
- <div className="flex items-center justify-between">
+      <div className="h-[calc(100vh-100px)] flex flex-col">
+        <div className="flex items-start justify-between mb-4">
           <PageHeader
             title="Orders"
             subtitle="Retailer incoming orders"
@@ -565,8 +572,10 @@ const finalInvoiceTotal =
         <Toast message={errorMessage} variant="error" onClose={() => setErrorMessage('')} />
         <Toast message={successMessage} variant="success" onClose={() => setSuccessMessage('')} />
 
-        <Card className="p-0 overflow-hidden">
-          <Table>
+        <div className="flex-1 min-h-0 pb-6">
+          <Card className="h-full flex flex-col p-0 overflow-hidden border border-border">
+            <div className="flex-1 overflow-y-auto">
+              <Table>
             <TableHead>
               <tr>
                 <th className="text-left p-4">
@@ -667,6 +676,19 @@ const finalInvoiceTotal =
                           View
                         </Button>
 
+                        <Button
+                          variant="secondary"
+                          className="px-3 py-2"
+                          onClick={() => {
+                            setPrintOrder(order);
+                            setTimeout(() => {
+                              window.print();
+                            }, 100);
+                          }}
+                        >
+                          Print
+                        </Button>
+
                         {order.status ===
                           'PENDING' && (
                           <>
@@ -719,8 +741,10 @@ const finalInvoiceTotal =
                 </tr>
               )}
             </TableBody>
-          </Table>
-        </Card>
+              </Table>
+            </div>
+          </Card>
+        </div>
 
         <Modal
           open={
@@ -1060,6 +1084,31 @@ const finalInvoiceTotal =
             </div> 
     </Modal>
 
+        <div className="hidden">
+          {printOrder && (
+            <SaleInvoiceBill
+              data={{
+                invoiceNo: printOrder.id.slice(0, 8).toUpperCase(),
+                date: new Date(printOrder.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-').toUpperCase(),
+                serialNo: '14',
+                customerName: printOrder.retailers?.business_name,
+                items: printOrder.retailer_order_items.map((i, index) => ({
+                  id: i.id || String(index),
+                  code: i.product_id.slice(0, 5).toUpperCase(),
+                  description: i.product_name,
+                  quantity: i.requested_quantity,
+                  rate: i.unit_price,
+                  discount: 0,
+                  total: i.subtotal || (i.unit_price * i.requested_quantity)
+                })),
+                totalQuantity: printOrder.retailer_order_items.reduce((acc, i) => acc + Number(i.requested_quantity), 0),
+                totalAmount: printOrder.total_amount,
+                transportation: 0,
+                grandTotal: printOrder.total_amount
+              }}
+            />
+          )}
+        </div>
       </div>
     </AppLayout>
   );

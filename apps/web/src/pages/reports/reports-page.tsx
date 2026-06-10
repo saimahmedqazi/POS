@@ -466,19 +466,21 @@ setTopProducts(
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-         <div className="flex items-center justify-between">
-  <PageHeader
-    title="Reports & Analytics"
-    subtitle="Offline business analytics"
-  />
+      <div className="h-[calc(100vh-100px)] flex flex-col">
+         <div className="flex items-start justify-between mb-4">
+          <PageHeader
+            title="Reports & Analytics"
+            subtitle="Offline business analytics"
+          />
 
-  <Button
-    onClick={loadReports}
-  >
-    Refresh Reports
-  </Button>
-</div>
+          <Button
+            onClick={loadReports}
+          >
+            Refresh Reports
+          </Button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pb-6 space-y-6 min-h-0">
         <Card className="mb-6">
           <div className="flex flex-wrap gap-4 items-center">
             <select
@@ -791,7 +793,8 @@ setTopProducts(
 
         {activeTab ===
           'inventory' && (
-            <Table>
+            <Card className="p-0 overflow-hidden">
+              <Table>
               <TableHead>
                 <tr>
                   <th className="text-left p-4">
@@ -851,12 +854,14 @@ setTopProducts(
                   </TableCell>
                 </TableRow>
               </TableBody>
-            </Table>
+              </Table>
+            </Card>
           )}
 
         {activeTab ===
           'customers' && (
-            <Table>
+            <Card className="p-0 overflow-hidden">
+              <Table>
               <TableHead>
                 <tr>
                   <th className="text-left p-4">
@@ -895,8 +900,10 @@ setTopProducts(
                   ),
                 )}
               </TableBody>
-            </Table>
+              </Table>
+            </Card>
           )}
+        </div>
       </div>
     </AppLayout>
   );
