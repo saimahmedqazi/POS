@@ -440,7 +440,7 @@ export default function SalesPage() {
           )}
         </Modal>
 
-        <div className="hidden">
+        <div className="hidden print:block">
           {printSale && (
             <SaleInvoiceBill
               data={{

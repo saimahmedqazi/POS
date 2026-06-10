@@ -130,7 +130,7 @@ export default function ReceiptModal({
         </div>
       </div>
       
-      <div className="hidden">
+      <div className="hidden print:block">
         {/* Hidden but available for print */}
         <SaleInvoiceBill
           data={{

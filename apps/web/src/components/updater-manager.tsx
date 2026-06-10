@@ -8,6 +8,7 @@ export default function UpdaterManager() {
 
   useEffect(() => {
     async function checkForUpdates() {
+      if (import.meta.env.DEV) return;
       try {
         const update = await check();
         if (update) {

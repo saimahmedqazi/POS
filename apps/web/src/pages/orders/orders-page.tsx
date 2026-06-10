@@ -1084,7 +1084,7 @@ const finalInvoiceTotal =
             </div> 
     </Modal>
 
-        <div className="hidden">
+        <div className="hidden print:block">
           {printOrder && (
             <SaleInvoiceBill
               data={{
