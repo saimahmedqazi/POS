@@ -15,7 +15,8 @@ export default function UpdaterManager() {
           setUpdateAvailable(update);
         }
       } catch (error: any) {
-        if (!error?.toString().includes('Could not fetch a valid release JSON')) {
+        const errStr = error?.toString() || '';
+        if (!errStr.includes('Could not fetch a valid release JSON') && !errStr.includes('successful status code')) {
           console.error('Failed to check for updates:', error);
         }
       }

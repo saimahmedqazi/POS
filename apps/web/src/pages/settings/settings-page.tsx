@@ -51,7 +51,8 @@ export default function SettingsPage() {
         setUpdateStatus('You are on the latest version.');
       }
     } catch (e: any) {
-      if (e?.toString().includes('Could not fetch a valid release JSON')) {
+      const errStr = e?.toString() || '';
+      if (errStr.includes('Could not fetch a valid release JSON') || errStr.includes('successful status code')) {
         setUpdateStatus('No new release available yet.');
       } else {
         console.error(e);
