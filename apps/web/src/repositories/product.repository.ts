@@ -313,13 +313,14 @@ if (stockDifference !== 0) {
       id,
       product_id,
       type,
-      quantity,
-      reference_type,
+      quantity_change,
+      previous_quantity,
+      new_quantity,
       reference_id,
       notes,
       created_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       crypto.randomUUID(),
@@ -330,7 +331,9 @@ if (stockDifference !== 0) {
 
       stockDifference,
 
-      'PRODUCT_EDIT',
+      previousQuantity,
+
+      quantity,
 
       product.id,
 

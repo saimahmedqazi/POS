@@ -322,11 +322,8 @@ setInventoryTransactions(
               parsedQuantity,
           });
 
-        setProducts([
-          product as Product,
-
-          ...products,
-        ]);
+        await loadProducts();
+        
         const latestProducts =
           await getProducts();
 
@@ -447,20 +444,10 @@ setInventoryTransactions(
               parsedCostPrice,
           });
 
-        setProducts(
-  products.map(
-    (
-      product,
-    ) =>
-      product.id ===
-      editingProduct.id
-        ? (updated as Product)
-        : product,
-  ),
-);
-
-const latestProducts =
-  await getProducts();
+        await loadProducts();
+        
+        const latestProducts =
+          await getProducts();
 
 try {
   await syncProductsToCloud(
