@@ -128,6 +128,9 @@ export default function InventoryPage() {
   ] = useState<Product | null>(
     null,
   );
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'products' | 'history'>('products');
+
   const [
   syncingProducts,
   setSyncingProducts,
@@ -340,6 +343,7 @@ setInventoryTransactions(
         setSuccessMessage(
           'Product created successfully',
         );
+        setIsAddModalOpen(false);
       } catch (
         error: any
       ) {
@@ -695,145 +699,43 @@ setEditingProduct({
             title="Inventory"
             subtitle="Product stock management"
           />
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              disabled={syncingProducts || creating}
+              onClick={async () => {
+                try {
+                  setSyncingProducts(true)
+                  setErrorMessage('');
+                  setSuccessMessage('');
+                  await syncProductsToCloud(products);
+                  setSuccessMessage('Products synced successfully');
+                } catch (error: any) {
+                  console.error(error);
+                  setErrorMessage(error.message || 'Failed syncing products');
+                } finally {
+                  setSyncingProducts(false)
+                }
+              }}
+            >
+              {syncingProducts ? 'Syncing...' : 'Sync Products'}
+            </Button>
+            <Button onClick={() => setIsAddModalOpen(true)}>
+              Add Product
+            </Button>
+          </div>
         </div>
 
         <Toast message={errorMessage} variant="error" onClose={() => setErrorMessage('')} />
         <Toast message={successMessage} variant="success" onClose={() => setSuccessMessage('')} />
 
-        <div className="flex-1 min-h-0 flex flex-col gap-4 pb-6">
-          <Card className="shrink-0 border border-border">
-          <h2 className="text-xl font-semibold mb-4">
-            Add Product
-          </h2>
+        <div className="flex gap-4 mb-4 border-b border-border pb-px">
+          <button onClick={() => setActiveTab('products')} className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'products' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Products</button>
+          <button onClick={() => setActiveTab('history')} className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'history' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Inventory History</button>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            <Input
-              type="text"
-              placeholder="Name"
-              value={name}
-              onChange={(e) =>
-                setName(
-                  e.target.value,
-                )
-              }
-            />
-
-            <Input
-              type="text"
-              placeholder="SKU"
-              value={sku}
-              onChange={(e) =>
-                setSku(
-                  e.target.value,
-                )
-              }
-            />
-
-            <Input
-              type="text"
-              placeholder="Barcode"
-              value={barcode}
-              onChange={(e) =>
-                setBarcode(
-                  e.target.value,
-                )
-              }
-            />
-
-            <Input
-              type="number"
-              placeholder="Cost Price"
-              value={costPrice}
-              onChange={(e) =>
-                setCostPrice(
-                  e.target.value,
-                )
-              }
-            />
-
-            <Input
-              type="number"
-              placeholder="Sale Price"
-              value={salePrice}
-              onChange={(e) =>
-                setSalePrice(
-                  e.target.value,
-                )
-              }
-            />
-
-            <Input
-              type="number"
-              placeholder="Opening Quantity"
-              value={quantity}
-              onChange={(e) =>
-                setQuantity(
-                  e.target.value,
-                )
-              }
-            />
-          </div>
-<div className="flex gap-3 mt-4">
-  <Button
-    onClick={
-      handleCreateProduct
-    }
-    disabled={
-      creating ||
-      loading
-    }
-  >
-    {creating
-      ? 'Creating...'
-      : 'Create Product'}
-  </Button>
-
-  <Button
-    variant="secondary"
-    disabled={
-  syncingProducts ||
-  creating
-}
-    onClick={async () => {
-      try {
-        setSyncingProducts(true)
-        setErrorMessage(
-          '',
-        );
-
-        setSuccessMessage(
-          '',
-        );
-
-        await syncProductsToCloud(
-          products,
-        );
-
-        setSuccessMessage(
-          'Products synced successfully',
-        );
-      } catch (
-        error: any
-      ) {
-        console.error(
-          error,
-        );
-
-        setErrorMessage(
-          error.message ||
-            'Failed syncing products',
-        );
-      } finally {
-        setSyncingProducts(false)
-      }
-    }}
-  >
-    {syncingProducts
-  ? 'Syncing...'
-      : 'Sync Products'}
-  </Button>
-</div>
-        </Card>
+        <div className="flex-1 min-h-0 flex flex-col pb-6">
+          {activeTab === 'products' && (
 
           <Card className="flex-1 flex flex-col p-0 overflow-hidden border border-border">
             <div className="flex-1 overflow-y-auto">
@@ -962,8 +864,11 @@ setEditingProduct({
         </Table>
             </div>
           </Card>
-          <Card className="p-6 shrink-0 border border-border"> 
-  <div className="flex items-center justify-between mb-6">
+          )}
+
+          {activeTab === 'history' && (
+          <Card className="flex-1 flex flex-col p-0 overflow-hidden border border-border"> 
+  <div className="flex items-center justify-between mb-6 p-6 pb-0">
     <div>
       <h2 className="text-2xl font-bold">
         Inventory History
@@ -975,7 +880,7 @@ setEditingProduct({
     </div>
   </div>
 
-  <div className="overflow-x-auto">
+  <div className="flex-1 overflow-y-auto p-6 pt-2">
     <table className="w-full">
       <thead>
         <tr className="border-b border-border">
@@ -1048,6 +953,7 @@ setEditingProduct({
     </table>
   </div>
 </Card>
+          )}
       </div>
       </div>
 
@@ -1316,11 +1222,52 @@ setEditingProduct({
             >
               Archive Product
             </Button>
-          
           </div>
-
         </div>
       </Modal>
+
+      <Modal
+        open={isAddModalOpen}
+        title="Add Product"
+        onClose={() => setIsAddModalOpen(false)}
+      >
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-muted-foreground ml-1">Product Name</label>
+            <Input type="text" placeholder="e.g. T-Shirt" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-muted-foreground ml-1">SKU</label>
+            <Input type="text" placeholder="e.g. TS-001" value={sku} onChange={(e) => setSku(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-muted-foreground ml-1">Barcode</label>
+            <Input type="text" placeholder="e.g. 123456789" value={barcode} onChange={(e) => setBarcode(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-muted-foreground ml-1">Opening Quantity</label>
+            <Input type="number" placeholder="e.g. 50" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-muted-foreground ml-1">Cost Price</label>
+            <Input type="number" placeholder="e.g. 1500" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-muted-foreground ml-1">Sale Price</label>
+            <Input type="number" placeholder="e.g. 2500" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 mt-6">
+          <Button variant="secondary" onClick={() => setIsAddModalOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleCreateProduct} disabled={creating || loading}>
+            {creating ? 'Creating...' : 'Create Product'}
+          </Button>
+        </div>
+      </Modal>
+
     </AppLayout>
   );
 }
