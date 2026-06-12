@@ -59,3 +59,16 @@ jobs:
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
+
+      - name: Debug Output Directory
+        shell: bash
+        run: |
+          echo "Listing target/release/bundle directory:"
+          find apps/web/src-tauri/target/release/bundle -type f || true
+
+      - name: Upload Updater JSON Manually
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          find apps/web/src-tauri/target/release/bundle -name "*.json" -exec gh release upload ${{ github.ref_name }} {} --clobber \; || true
