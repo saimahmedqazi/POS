@@ -66,9 +66,31 @@ jobs:
           echo "Listing target/release/bundle directory:"
           find apps/web/src-tauri/target/release/bundle -type f || true
 
-      - name: Upload Updater JSON Manually
+      - name: Manually Generate latest.json
+        working-directory: ./apps/web
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          SIG=$(cat src-tauri/target/release/bundle/nsis/*-setup.exe.sig)
+          EXE_NAME=$(basename src-tauri/target/release/bundle/nsis/*-setup.exe)
+          
+          cat <<EOF > ../latest.json
+          {
+            "version": "$VERSION",
+            "notes": "Automated update",
+            "pub_date": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "$SIG",
+                "url": "https://github.com/saimahmedqazi/POS/releases/download/v$VERSION/$EXE_NAME"
+              }
+            }
+          }
+          EOF
+
+      - name: Upload latest.json manually
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          find apps/web/src-tauri/target/release/bundle -name "*.json" -exec gh release upload ${{ github.ref_name }} {} --clobber \; || true
+          gh release upload ${{ github.ref_name }} latest.json --clobber || true
