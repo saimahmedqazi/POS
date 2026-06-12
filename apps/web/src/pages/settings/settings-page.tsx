@@ -45,8 +45,9 @@ export default function SettingsPage() {
       setUpdateStatus('Checking for updates...');
       const update = await check();
       if (update) {
-        setUpdateStatus(`Version ${update.version} available!`);
-        // await update.downloadAndInstall();
+        setUpdateStatus(`Version ${update.version} available! Installing...`);
+        await update.downloadAndInstall();
+        setUpdateStatus(`Update installed. Please restart the app.`);
       } else {
         setUpdateStatus('You are on the latest version.');
       }
