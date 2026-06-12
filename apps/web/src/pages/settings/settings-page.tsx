@@ -52,12 +52,8 @@ export default function SettingsPage() {
       }
     } catch (e: any) {
       const errStr = e?.toString() || '';
-      if (errStr.includes('Could not fetch a valid release JSON') || errStr.includes('successful status code')) {
-        setUpdateStatus('No new release available yet.');
-      } else {
-        console.error(e);
-        setUpdateStatus('Update check failed.');
-      }
+      console.error("Updater error:", e);
+      setUpdateStatus(`Update check failed: ${errStr}`);
     } finally {
       setIsCheckingUpdate(false);
     }
