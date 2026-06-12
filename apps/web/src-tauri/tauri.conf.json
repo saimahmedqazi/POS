@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "POS",
-  "version": "0.1.24",
+  "version": "0.1.25",
   "identifier": "com.cybsoc.pos.erp",
   "build": {
     "frontendDist": "../dist",
@@ -45,7 +45,7 @@
       "endpoints": [
         "https://github.com/saimahmedqazi/POS/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYxQzRBNDdCMkVBMDFDOEIKUldTTEhLQXVlNlRFWVlXUWhDY09iM0FPRjZFNHQvb3dIYUx3dEw0MGVNeFN2cVRNRG1PYUNOU0gK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYzNkQ0RUU5NkJGOEE2NwpSV1JuaXIrVzd0UTJEN0ppSFZUaFJXdzBWL21pZVJYRk5pYm4rY1MxSjVtZmFNT05NTi9FMUlNUAo="
     }
   }
 }
