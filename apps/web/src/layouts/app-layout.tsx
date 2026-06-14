@@ -185,7 +185,7 @@ export default function AppLayout({ children }: Props) {
           <div className="bg-surface/90 backdrop-blur-md border-b border-border py-2 px-4 flex items-center justify-between sticky top-0 z-50">
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
-                <ShieldCheck size={14} />
+                <Store size={14} />
               </div>
               <span className="font-bold text-sm">POS Terminal</span>
               <span className="text-muted-foreground text-xs">v{pkgJson.version}</span>

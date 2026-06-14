@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Retailer App",
-    "slug": "mobile",
+    "name": "CYBSOC Retailer",
+    "slug": "cybsoc-retailer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
