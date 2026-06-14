@@ -92,7 +92,6 @@ export default function App() {
 
   if (loading) {
     return (
-    return (
       <View
         style={{
           flex: 1,
