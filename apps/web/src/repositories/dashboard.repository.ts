@@ -28,9 +28,11 @@ export async function getDashboardStats() {
           JOIN sales s ON si.sale_id = s.id
           LEFT JOIN products p ON si.product_id = p.id
           WHERE DATE(s.created_at, 'localtime') = DATE('now', 'localtime')
+          AND s.payment_status NOT IN ('RETURNED', 'REVERTED')
         ) as total_cost
       FROM sales
       WHERE DATE(created_at, 'localtime') = DATE('now', 'localtime')
+      AND payment_status NOT IN ('RETURNED', 'REVERTED')
       `,
     );
 
@@ -78,6 +80,7 @@ export async function getDashboardStats() {
         COALESCE(SUM(final_amount), 0) as revenue
       FROM sales
       WHERE DATE(created_at, 'localtime') >= date('now', 'localtime', '-7 days')
+      AND payment_status NOT IN ('RETURNED', 'REVERTED')
       GROUP BY DATE(created_at, 'localtime')
       ORDER BY date ASC
       `

@@ -4,7 +4,8 @@ import { Window } from '@tauri-apps/api/window';
 import {
   LayoutDashboard, ShoppingCart, Package, BarChart3,
   Users, BookOpen, Settings, Receipt, LogOut,
-  ShieldCheck, ClipboardList, Minus, Square, X, Minimize2
+  Store, ClipboardList, Minus, Square, X, Minimize2,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import pkgJson from '../../package.json';
 import { useAuth } from '../context/auth-context';
@@ -56,6 +57,13 @@ export default function AppLayout({ children }: Props) {
   const { currentUser, logout } = useAuth();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement);
@@ -89,25 +97,32 @@ export default function AppLayout({ children }: Props) {
       <Titlebar />
 
       {!hideSidebar && (
-        <aside className="w-64 bg-surface/80 backdrop-blur-md flex flex-col border-r border-border transition-colors duration-300 relative z-40 shadow-sm">
+        <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-surface/80 backdrop-blur-md flex flex-col border-r border-border transition-colors duration-300 relative z-40 shadow-sm`}>
+          {/* TOGGLE BUTTON */}
+          <button 
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="absolute -right-3 top-20 bg-surface border border-border text-foreground hover:text-primary rounded-full p-1 shadow-md z-50 transition-colors"
+          >
+            {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
+
           {/* HEADER */}
-          <div className="p-6 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20">
-                <ShieldCheck size={22} />
+          <div className={`p-4 border-b border-border ${isSidebarCollapsed ? 'flex justify-center' : ''}`}>
+            <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+              <div className="w-10 h-10 min-w-[40px] rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20">
+                <Store size={20} />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold leading-none tracking-tight">POS ERP</h1>
-                <p className="text-muted-foreground text-[10px] mt-1 font-medium uppercase tracking-wide">Powered by CYBSOC</p>
-                <div className="mt-1 inline-block bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] font-bold">
-                  v{pkgJson.version}
+              {!isSidebarCollapsed && (
+                <div className="overflow-hidden whitespace-nowrap">
+                  <h1 className="text-xl font-bold leading-none tracking-tight">POS ERP</h1>
+                  <p className="text-muted-foreground text-[9px] mt-1 font-medium uppercase tracking-wide">Powered by CYBSOC</p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
           {/* NAVIGATION */}
-          <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+          <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto overflow-x-hidden">
             {navigation.map((item) => {
               const Icon = item.icon;
               const active = location.pathname === item.path;
@@ -115,18 +130,27 @@ export default function AppLayout({ children }: Props) {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  title={isSidebarCollapsed ? item.name : undefined}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
                     active
                       ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02]'
                       : 'hover:bg-surface-hover text-foreground/80 hover:text-foreground hover:scale-[1.01]'
-                  }`}
+                  } ${isSidebarCollapsed ? 'justify-center' : ''}`}
                 >
-                  <Icon size={18} />
-                  <span className="font-medium text-sm flex-1">{item.name}</span>
-                  {item.name === 'Inventory' && lowStockCount > 0 && (
+                  <Icon size={18} className="min-w-[18px]" />
+                  
+                  {!isSidebarCollapsed && (
+                    <span className="font-medium text-sm flex-1 whitespace-nowrap">{item.name}</span>
+                  )}
+
+                  {!isSidebarCollapsed && item.name === 'Inventory' && lowStockCount > 0 && (
                     <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
                       {lowStockCount}
                     </span>
+                  )}
+
+                  {isSidebarCollapsed && item.name === 'Inventory' && lowStockCount > 0 && (
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </Link>
               );
@@ -134,16 +158,22 @@ export default function AppLayout({ children }: Props) {
           </nav>
 
           {/* USER + LOGOUT */}
-          <div className="p-4 border-t border-border bg-surface/50">
-            <div className="mb-4 px-2">
-              <div className="font-semibold text-sm truncate">{currentUser?.name}</div>
-              <div className="text-xs text-primary mt-1 font-bold uppercase tracking-wider">{currentUser?.role}</div>
-            </div>
+          <div className={`p-4 border-t border-border bg-surface/50 flex flex-col ${isSidebarCollapsed ? 'items-center' : ''}`}>
+            {!isSidebarCollapsed && (
+              <div className="mb-4 px-2 whitespace-nowrap overflow-hidden">
+                <div className="font-semibold text-sm truncate">{currentUser?.name}</div>
+                <div className="text-xs text-primary mt-1 font-bold uppercase tracking-wider">{currentUser?.role}</div>
+              </div>
+            )}
+            
             <button
               onClick={logout}
-              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 transition-all duration-200 font-medium text-sm"
+              title={isSidebarCollapsed ? "Logout" : undefined}
+              className={`flex items-center justify-center gap-3 rounded-xl bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 transition-all duration-200 font-medium text-sm ${
+                isSidebarCollapsed ? 'p-3 w-12 h-12' : 'px-4 py-2.5 w-full'
+              }`}
             >
-              <LogOut size={16} /> Logout
+              <LogOut size={16} /> {!isSidebarCollapsed && <span>Logout</span>}
             </button>
           </div>
         </aside>

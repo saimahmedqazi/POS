@@ -158,8 +158,12 @@ export default function SettingsPage() {
       );
 
       setSuccessMessage(
-        'Restore completed successfully. Please restart the application.',
+        'Restore completed successfully. Reloading application...',
       );
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (error) {
       console.error(
         error,

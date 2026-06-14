@@ -22,7 +22,6 @@ export default function OrdersScreen() {
   async function loadOrders() {
     try {
       const data = await getMyOrders();
-      console.log('ORDERS FETCHED:', data);
       setOrders(data || []);
     } catch (error) {
       console.error('Failed loading orders:', error);

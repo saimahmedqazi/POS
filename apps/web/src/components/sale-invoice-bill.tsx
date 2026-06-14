@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 export type InvoiceItem = {
   id: string;

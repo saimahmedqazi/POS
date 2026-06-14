@@ -203,7 +203,7 @@ const safeMoney = (
               FROM sales
               LEFT JOIN customers
               ON sales.customer_id = customers.id
-              ${dateCondition}
+              ${dateCondition ? dateCondition + " AND sales.payment_status NOT IN ('RETURNED', 'REVERTED')" : "WHERE sales.payment_status NOT IN ('RETURNED', 'REVERTED')"}
               ORDER BY sales.created_at DESC
               `,
             );
@@ -227,10 +227,10 @@ const safeMoney = (
                   FROM sale_items si
                   JOIN sales s ON si.sale_id = s.id
                   LEFT JOIN products p ON si.product_id = p.id
-                  ${salesDateCondition}
+                  ${salesDateCondition ? salesDateCondition + " AND s.payment_status NOT IN ('RETURNED', 'REVERTED')" : "WHERE s.payment_status NOT IN ('RETURNED', 'REVERTED')"}
                 ) as totalCost
               FROM sales
-              ${dateCondition}
+              ${dateCondition ? dateCondition + " AND payment_status NOT IN ('RETURNED', 'REVERTED')" : "WHERE payment_status NOT IN ('RETURNED', 'REVERTED')"}
               `,
             );
 

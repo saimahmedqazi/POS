@@ -1046,8 +1046,8 @@ export default function PosPage() {
           </div>
 
           {/* CART */}
-          <div>
-            <Card className="h-full flex flex-col">
+          <div className="min-h-0 flex flex-col">
+            <Card className="h-full flex flex-col min-h-0">
               <h2 className="text-2xl font-bold mb-3">
                 Cart
               </h2>

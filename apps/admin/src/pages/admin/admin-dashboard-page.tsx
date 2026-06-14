@@ -32,6 +32,7 @@ export default function AdminDashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
 
   function safeTime(date?: string | null) {
     if (!date) return null;
@@ -110,6 +111,7 @@ export default function AdminDashboardPage() {
       setStats(computed);
     } catch (error) {
       console.error('STATS ERROR:', error);
+      setError('Failed to load dashboard stats. Check your Supabase connection.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -123,7 +125,12 @@ export default function AdminDashboardPage() {
   if (loading) {
     return (
       <AdminLayout>
-        <div>Loading dashboard...</div>
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="text-muted-foreground text-sm font-medium">Loading dashboard...</div>
+          </div>
+        </div>
       </AdminLayout>
     );
   }
@@ -142,11 +149,15 @@ export default function AdminDashboardPage() {
             disabled={refreshing}
             onClick={() => loadStats(true)}
           >
-            {refreshing
-              ? 'Refreshing...'
-              : 'Refresh'}
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
           <Card className="p-6 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">

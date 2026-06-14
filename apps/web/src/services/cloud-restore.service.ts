@@ -24,6 +24,9 @@ export async function restoreCloudBackup(
  
 
   try {
+    // BEGIN TRANSACTION
+    await db.execute('BEGIN TRANSACTION');
+
     // CLEAR TABLES
     await db.execute(
       'DELETE FROM sale_items',
@@ -190,10 +193,12 @@ export async function restoreCloudBackup(
       );
     }
 
-    
+    // COMMIT TRANSACTION
+    await db.execute('COMMIT');
 
     return true;
 } catch (error) {
+  await db.execute('ROLLBACK').catch(() => {});
   console.error(
     'RESTORE FAILED:',
     error,

@@ -29,13 +29,11 @@ type CartStore = {
 
   clearCart: () => void;
 
-  increaseQuantity: (
-    productId: string,
-  ) => void;
+  increaseQuantity: (productId: string) => void;
 
-  decreaseQuantity: (
-    productId: string,
-  ) => void;
+  decreaseQuantity: (productId: string) => void;
+
+  setQuantity: (productId: string, quantity: number) => void;
 };
 
 export const useCartStore = create<CartStore>()(
@@ -180,6 +178,18 @@ export const useCartStore = create<CartStore>()(
                   ),
             }),
           ),
+
+      setQuantity: (productId, quantity) =>
+        set((state) => ({
+          items:
+            quantity <= 0
+              ? state.items.filter((item) => item.id !== productId)
+              : state.items.map((item) =>
+                  item.id === productId
+                    ? { ...item, quantity: Math.floor(quantity) }
+                    : item,
+                ),
+        })),
     }),
     {
       name: 'shopping-cart-storage',

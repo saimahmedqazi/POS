@@ -65,9 +65,11 @@ function LoadingScreen() {
   
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center ${themeClasses}`}>
-      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-      <div className="opacity-70 text-lg font-medium">
-        Initializing POS...
+      <div className="w-48 h-1 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden mb-4 relative">
+        <div className="absolute top-0 left-0 h-full bg-blue-500 w-full animate-[indeterminate_1.5s_infinite_linear]" />
+      </div>
+      <div className="opacity-70 text-sm tracking-widest uppercase font-medium">
+        Powered by CYBSOC
       </div>
     </div>
   );

@@ -304,26 +304,14 @@ setInventoryTransactions(
       try {
         setCreating(true);
 
-        const product =
-          await createProduct({
-            name:
-              trimmedName,
-
-            sku:
-              trimmedSku,
-
-            barcode:
-              trimmedBarcode,
-
-            salePrice:
-              parsedSalePrice,
-
-            costPrice:
-              parsedCostPrice,
-
-            quantity:
-              parsedQuantity,
-          });
+        await createProduct({
+          name: trimmedName,
+          sku: trimmedSku,
+          barcode: trimmedBarcode,
+          salePrice: parsedSalePrice,
+          costPrice: parsedCostPrice,
+          quantity: parsedQuantity,
+        });
 
         await loadProducts();
         
@@ -428,25 +416,14 @@ setInventoryTransactions(
       try {
         setCreating(true);
 
-        const updated =
-          await updateProduct({
-            ...editingProduct,
-
-            name:
-              trimmedName,
-
-            sku:
-              trimmedSku,
-
-            barcode:
-              trimmedBarcode,
-
-            salePrice:
-              parsedSalePrice,
-
-            costPrice:
-              parsedCostPrice,
-          });
+        await updateProduct({
+          ...editingProduct,
+          name: trimmedName,
+          sku: trimmedSku,
+          barcode: trimmedBarcode,
+          salePrice: parsedSalePrice,
+          costPrice: parsedCostPrice,
+        });
 
         await loadProducts();
         

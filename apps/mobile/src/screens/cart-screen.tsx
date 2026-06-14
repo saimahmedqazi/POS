@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
@@ -13,12 +14,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useCartStore } from '../store/cart.store';
 import { placeOrder } from '../services/orders.service';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/app-navigation';
 
 export default function CartScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const items = useCartStore((state) => state.items);
   const increaseQuantity = useCartStore((state) => state.increaseQuantity);
   const decreaseQuantity = useCartStore((state) => state.decreaseQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
+  const setQuantity = useCartStore((state) => state.setQuantity);
 
   const total = items.reduce((sum, item) => sum + item.sale_price * item.quantity, 0);
   const [placingOrder, setPlacingOrder] = useState(false);
@@ -26,9 +32,15 @@ export default function CartScreen() {
   const handlePlaceOrder = async () => {
     try {
       if (placingOrder) return;
+      const itemCount = items.reduce((s, i) => s + i.quantity, 0);
+      const total = items.reduce((s, i) => s + i.sale_price * i.quantity, 0);
       setPlacingOrder(true);
-      await placeOrder();
-      Alert.alert('Success', 'Order placed successfully');
+      const order = await placeOrder();
+      navigation.replace('OrderConfirmation', {
+        orderId: order.id,
+        total,
+        itemCount,
+      });
     } catch (error: any) {
       console.error(error);
       Alert.alert('Error', error.message || 'Failed placing order');
@@ -70,7 +82,17 @@ export default function CartScreen() {
                   <Feather name="minus" size={16} color="#94a3b8" />
                 </TouchableOpacity>
 
-                <Text style={styles.qtyText}>{item.quantity}</Text>
+                <TextInput
+                  style={styles.qtyInput}
+                  value={String(item.quantity)}
+                  keyboardType="number-pad"
+                  selectTextOnFocus
+                  onChangeText={(text) => {
+                    const n = parseInt(text, 10);
+                    if (!isNaN(n)) setQuantity(item.id, n);
+                    else if (text === '') setQuantity(item.id, 0);
+                  }}
+                />
 
                 <TouchableOpacity
                   onPress={() => increaseQuantity(item.id)}
@@ -194,12 +216,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  qtyText: {
-    fontSize: 14,
+  qtyInput: {
+    fontSize: 15,
     fontWeight: '700',
     color: '#f8fafc',
-    minWidth: 20,
+    minWidth: 36,
     textAlign: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
   emptyContainer: {
     flex: 1,

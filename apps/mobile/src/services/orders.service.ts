@@ -252,10 +252,5 @@ export async function getMyOrders() {
     throw error;
   }
 
-  console.log(
-    'MY ORDERS:',
-    data,
-  );
-
   return data || [];
 }

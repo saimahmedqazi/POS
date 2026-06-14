@@ -29,6 +29,7 @@ export default function LicensesPage() {
   const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [search, setSearch] = useState('');
 
   const [actionLoading, setActionLoading] = useState<
     Record<string, ActionType | null>
@@ -233,10 +234,23 @@ export default function LicensesPage() {
   if (loading) {
     return (
       <AdminLayout>
-        <div>Loading licenses...</div>
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="text-muted-foreground text-sm font-medium">Loading licenses...</div>
+          </div>
+        </div>
       </AdminLayout>
     );
   }
+
+  const filteredLicenses = licenses.filter((l) => {
+    const q = search.toLowerCase();
+    return (
+      l.license_key.toLowerCase().includes(q) ||
+      (l.business_name || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
     <AdminLayout>
@@ -252,8 +266,17 @@ export default function LicensesPage() {
           </Button>
         </div>
 
+        {/* SEARCH */}
+        <input
+          type="text"
+          placeholder="Search by license key or business name..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full border border-border/50 px-4 py-2.5 rounded-xl text-sm bg-surface-hover text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all"
+        />
+
         <div className="grid gap-4">
-          {licenses.map((license) => {
+          {filteredLicenses.map((license) => {
             const expired = isExpired(license);
             const loadingAction = actionLoading[license.id];
 
@@ -385,9 +408,9 @@ export default function LicensesPage() {
             );
           })}
 
-          {licenses.length === 0 && (
+          {filteredLicenses.length === 0 && (
             <Card className="p-10 text-center text-slate-500">
-              No licenses found
+              {search ? `No licenses match "${search}"` : 'No licenses found'}
             </Card>
           )}
         </div>

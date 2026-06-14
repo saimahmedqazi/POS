@@ -141,6 +141,9 @@ export async function createLocalSale(
     );
 
   try {
+    // BEGIN TRANSACTION
+    await db.execute('BEGIN TRANSACTION');
+
     // CREATE SALE
     await db.execute(
       `
@@ -376,27 +379,15 @@ export async function createLocalSale(
       ],
     );
 
+    // COMMIT TRANSACTION
+    await db.execute('COMMIT');
+
     return {
       success: true,
     };
   } catch (error) {
-    // MANUAL CLEANUP
-    await db.execute(
-      `
-      DELETE FROM sale_items
-      WHERE sale_id = ?
-      `,
-      [salePayload.saleId],
-    ).catch(() => {});
-
-    await db.execute(
-      `
-      DELETE FROM sales
-      WHERE id = ?
-      `,
-      [salePayload.saleId],
-    ).catch(() => {});
-
+    // ROLLBACK EVERYTHING ON FAILURE
+    await db.execute('ROLLBACK').catch(() => {});
     throw error;
   }
 }
@@ -441,4 +432,159 @@ export async function getLocalSales() {
   }
 
   return sales;
+}
+
+export async function revertLocalSale(saleId: string) {
+  const db = getDatabase();
+
+  const saleRows = await db.select(
+    `
+    SELECT *
+    FROM sales
+    WHERE id = ?
+    LIMIT 1
+    `,
+    [saleId]
+  ) as any[];
+
+  const sale = saleRows[0];
+
+  if (!sale) {
+    throw new Error('Sale not found');
+  }
+
+  if (sale.payment_status === 'RETURNED' || sale.payment_status === 'REVERTED') {
+    throw new Error('Sale is already reverted');
+  }
+
+  // 1. REVERSE CUSTOMER CREDIT
+  if (sale.payment_status === 'CREDIT' && sale.customer_id) {
+    await db.execute(
+      `
+      UPDATE customers
+      SET current_balance = current_balance - ?
+      WHERE id = ?
+      `,
+      [sale.final_amount, sale.customer_id]
+    );
+
+    await db.execute(
+      `
+      INSERT INTO ledger_entries (
+        id,
+        customer_id,
+        type,
+        amount,
+        reference_type,
+        reference_id,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        crypto.randomUUID(),
+        sale.customer_id,
+        'CREDIT',
+        sale.final_amount,
+        'RETURN',
+        sale.id,
+        new Date().toISOString(),
+      ]
+    );
+  }
+
+  // 2. UPDATE SALE STATUS
+  await db.execute(
+    `
+    UPDATE sales
+    SET payment_status = 'RETURNED'
+    WHERE id = ?
+    `,
+    [sale.id]
+  );
+
+  // 3. RESTORE INVENTORY
+  const items = await db.select(
+    `
+    SELECT *
+    FROM sale_items
+    WHERE sale_id = ?
+    `,
+    [sale.id]
+  ) as any[];
+
+  for (const item of items) {
+    const stockRows = await db.select(
+      `
+      SELECT quantity
+      FROM products
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [item.product_id]
+    ) as any[];
+
+    const currentStock = Number(stockRows[0]?.quantity || 0);
+    const newStock = currentStock + item.quantity;
+
+    await db.execute(
+      `
+      UPDATE products
+      SET quantity = ?
+      WHERE id = ?
+      `,
+      [newStock, item.product_id]
+    );
+
+    await db.execute(
+      `
+      INSERT INTO inventory_transactions (
+        id,
+        product_id,
+        type,
+        quantity_change,
+        previous_quantity,
+        new_quantity,
+        reference_id,
+        notes,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        crypto.randomUUID(),
+        item.product_id,
+        'RETURN',
+        item.quantity,
+        currentStock,
+        newStock,
+        sale.id,
+        'POS sale reverted',
+        new Date().toISOString(),
+      ]
+    );
+  }
+
+  // 4. SYNC QUEUE
+  await db.execute(
+    `
+    INSERT INTO sync_queue (
+      id,
+      event_type,
+      payload,
+      synced,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?)
+    `,
+    [
+      crypto.randomUUID(),
+      'SALE_REVERTED',
+      JSON.stringify({ saleId: sale.id }),
+      0,
+      new Date().toISOString(),
+    ]
+  );
+
+  return { success: true };
 }

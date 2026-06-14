@@ -15,11 +15,13 @@ import ProductsScreen from '../screens/products-screen';
 import CartScreen from '../screens/cart-screen';
 
 import OrdersScreen from '../screens/orders-screen';
+import OrderConfirmationScreen from '../screens/order-confirmation-screen';
 
 export type RootStackParamList = {
   Products: undefined;
   Cart: undefined;
   Orders: undefined;
+  OrderConfirmation: { orderId: string; total: number; itemCount: number };
 };
 
 const Stack =
@@ -96,6 +98,15 @@ export default function AppNavigation() {
     title: 'My Orders',
   }}
 />
+
+        <Stack.Screen
+          name="OrderConfirmation"
+          component={OrderConfirmationScreen}
+          options={{
+            title: 'Order Confirmed',
+            headerBackVisible: false,
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -45,12 +45,32 @@ jobs:
           echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}" >> .env
           echo "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}" >> .env
 
+      - name: Generate Self-Signed Code Signing Certificate
+        shell: powershell
+        run: |
+          $cert = New-SelfSignedCertificate `
+            -Subject "CN=CYBSOC POS ERP, O=CYBSOC, C=PK" `
+            -Type CodeSigning `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -KeyAlgorithm RSA `
+            -KeyLength 2048 `
+            -HashAlgorithm SHA256 `
+            -NotAfter (Get-Date).AddYears(5)
+          $pfxPassword = ConvertTo-SecureString -String "CybsocPOS2025" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath "$env:RUNNER_TEMP\cybsoc-pos.pfx" -Password $pfxPassword
+          echo "CODESIGN_PFX=$env:RUNNER_TEMP\cybsoc-pos.pfx" >> $env:GITHUB_ENV
+          echo "CODESIGN_PASSWORD=CybsocPOS2025" >> $env:GITHUB_ENV
+          echo "Certificate thumbprint: $($cert.Thumbprint)"
+
       - name: Build Tauri App & Create GitHub Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          TAURI_WINDOWS_CERTIFICATE_THUMBPRINT: ${{ env.CODESIGN_THUMBPRINT }}
+          # Self-signed cert: eliminates red SmartScreen block screen (shows yellow "unknown publisher" instead)
+          # For fully trusted signing, replace with a purchased OV/EV certificate from DigiCert/Sectigo
         with:
           projectPath: "apps/web"
           tagName: ${{ github.ref_name }} # Auto-use the pushed tag

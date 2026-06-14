@@ -28,6 +28,7 @@ import SaleInvoiceBill from '../../components/sale-invoice-bill';
 
 import {
   getLocalSales,
+  revertLocalSale,
 } from '../../repositories/sale.repository';
 
 type SaleItem = {
@@ -91,30 +92,49 @@ export default function SalesPage() {
     setPrintSale,
   ] = useState<Sale | null>(null);
 
+  const [revertingId, setRevertingId] = useState<string | null>(null);
+  const [revertConfirmOpen, setRevertConfirmOpen] = useState(false);
+  const [revertTargetId, setRevertTargetId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
+
+  const totalPages = Math.max(1, Math.ceil(sales.length / PAGE_SIZE));
+  const paginatedSales = sales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const loadLocalSales = async () => {
+    try {
+      const localSales = await getLocalSales();
+      setSales(localSales as Sale[]);
+    } catch (error) {
+      console.error('Failed loading local sales', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
  useEffect(() => {
-  const loadLocalSales =
-    async () => {
-      try {
-        const localSales =
-          await getLocalSales();
-
-        setSales(
-          localSales as Sale[],
-        );
-      } catch (
-        error
-      ) {
-        console.error(
-          'Failed loading local sales',
-          error,
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
   loadLocalSales();
 }, []);
+
+  async function handleRevertSale() {
+    if (!revertTargetId) return;
+
+    try {
+      setRevertingId(revertTargetId);
+      await revertLocalSale(revertTargetId);
+      setSuccessMessage('Sale reverted successfully. Inventory and ledger updated.');
+      await loadLocalSales();
+    } catch (error: any) {
+      console.error('Failed reverting sale', error);
+      setErrorMessage(error.message || 'Failed reverting sale');
+    } finally {
+      setRevertingId(null);
+      setRevertConfirmOpen(false);
+      setRevertTargetId(null);
+    }
+  }
 
   if (loading) {
     return (
@@ -137,6 +157,57 @@ export default function SalesPage() {
             subtitle="Sales transactions and invoices"
           />
         </div>
+
+        {errorMessage && (
+          <div className="mb-4 bg-red-100 text-red-700 p-3 rounded-lg border border-red-200">
+            {errorMessage}
+          </div>
+        )}
+        {successMessage && (
+          <div className="mb-4 bg-green-100 text-green-700 p-3 rounded-lg border border-green-200">
+            {successMessage}
+          </div>
+        )}
+
+        <Modal
+          open={revertConfirmOpen}
+          title="Revert Sale"
+          onClose={() => {
+            setRevertConfirmOpen(false);
+            setRevertTargetId(null);
+          }}
+        >
+          <div className="p-6">
+            <p className="text-slate-600 mb-6">
+              Are you sure you want to revert this sale? This action will:
+              <ul className="list-disc ml-5 mt-2 space-y-1">
+                <li>Mark the sale as RETURNED</li>
+                <li>Restore item quantities back to inventory</li>
+                <li>Refund customer credit balance (if applicable)</li>
+              </ul>
+              <br />
+              <strong>This action cannot be undone.</strong>
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setRevertConfirmOpen(false);
+                  setRevertTargetId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                disabled={revertingId !== null}
+                onClick={handleRevertSale}
+              >
+                {revertingId ? 'Reverting...' : 'Confirm Revert'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
 
         <div className="flex-1 min-h-0 pb-6">
           <Card className="h-full flex flex-col p-0 overflow-hidden border border-border">
@@ -175,7 +246,7 @@ export default function SalesPage() {
             </TableHead>
 
             <TableBody>
-              {sales.map(
+              {paginatedSales.map(
                 (
                   sale,
                 ) => (
@@ -209,8 +280,9 @@ export default function SalesPage() {
                     <TableCell>
                       <Badge
                         variant={
-                          sale.payment_status ===
-                          'CREDIT'
+                          sale.payment_status === 'RETURNED' || sale.payment_status === 'REVERTED'
+                            ? 'neutral'
+                            : sale.payment_status === 'CREDIT'
                             ? 'danger'
                             : 'success'
                         }
@@ -262,6 +334,19 @@ export default function SalesPage() {
                         >
                           Print
                         </Button>
+                        
+                        {sale.payment_status !== 'RETURNED' && sale.payment_status !== 'REVERTED' && (
+                          <Button
+                            variant="danger"
+                            className="px-3 py-2"
+                            onClick={() => {
+                              setRevertTargetId(sale.id);
+                              setRevertConfirmOpen(true);
+                            }}
+                          >
+                            Revert
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -283,6 +368,34 @@ export default function SalesPage() {
               </Table>
             </div>
           </Card>
+
+          {/* PAGINATION */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-3 px-1">
+              <span className="text-xs text-muted-foreground">
+                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, sales.length)} of {sales.length} records
+              </span>
+              <div className="flex gap-2">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage(p => p - 1)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-surface hover:bg-surface-hover disabled:opacity-40 transition-colors"
+                >
+                  ← Prev
+                </button>
+                <span className="px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-surface hover:bg-surface-hover disabled:opacity-40 transition-colors"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <Modal

@@ -689,34 +689,25 @@ const finalInvoiceTotal =
                           Print
                         </Button>
 
-                        {order.status ===
-                          'PENDING' && (
+                        {(order.status === 'PENDING' ||
+                          order.status === 'PARTIAL') && (
                           <>
                             <Button
                               className="px-3 py-2"
-                              disabled={
-                                saving
-                              }
+                              disabled={saving}
                               onClick={() =>
-                                openFulfillmentModal(
-                                  order,
-                                )
+                                openFulfillmentModal(order)
                               }
                             >
-                              Fulfill
+                              {order.status === 'PARTIAL' ? 'Fulfill Remaining' : 'Fulfill'}
                             </Button>
 
                             <Button
                               variant="danger"
                               className="px-3 py-2"
-                              disabled={
-                                saving
-                              }
+                              disabled={saving}
                               onClick={() =>
-                                handleStatusUpdate(
-                                  order.id,
-                                  'REJECTED',
-                                )
+                                handleStatusUpdate(order.id, 'REJECTED')
                               }
                             >
                               Reject
