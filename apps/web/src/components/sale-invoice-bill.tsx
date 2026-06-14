@@ -1,5 +1,4 @@
 
-
 export type InvoiceItem = {
   id: string;
   code: string;
@@ -14,6 +13,7 @@ export type InvoiceData = {
   invoiceNo: string;
   date: string;
   serialNo: string;
+  businessName?: string;
   customerName?: string;
   items: InvoiceItem[];
   totalQuantity: number;
@@ -27,10 +27,12 @@ type Props = {
 };
 
 export default function SaleInvoiceBill({ data }: Props) {
+  const businessName = data.businessName || 'CybSOC POS';
+
   return (
     <div className="print-only text-black bg-white" style={{ fontFamily: 'monospace', fontSize: '12px', padding: '20px', width: '100%', maxWidth: '800px', margin: '0 auto' }}>
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold uppercase" style={{ letterSpacing: '2px' }}>Ice Depot</h1>
+        <h1 className="text-2xl font-bold uppercase" style={{ letterSpacing: '2px' }}>{businessName}</h1>
         <h2 className="text-xl font-bold uppercase mt-2 border-b-2 border-black inline-block pb-1">Sale Invoice</h2>
       </div>
 
@@ -38,21 +40,11 @@ export default function SaleInvoiceBill({ data }: Props) {
         <div>
           <p>PARTY NAME: {data.customerName || 'SPOT SALE'}</p>
           <p>TQ: {data.totalQuantity}</p>
-          <p>TW: 1272</p>
         </div>
         <div className="text-right">
           <p>INVOICE #: {data.invoiceNo}</p>
           <p>DATE: {data.date}</p>
           <p>SERIAL #: {data.serialNo}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-4 font-semibold uppercase">
-        <div>
-          <p>SALESMAN: DISTRIBUTOR</p>
-        </div>
-        <div className="text-right">
-          <p>BOOKER: DISTRIBUTOR</p>
         </div>
       </div>
 
@@ -101,6 +93,10 @@ export default function SaleInvoiceBill({ data }: Props) {
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div className="text-center mt-8 pt-4 border-t border-black/20 text-[10px] uppercase tracking-widest font-semibold text-gray-500">
+        Powered by CybSOC
       </div>
     </div>
   );

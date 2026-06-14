@@ -1,67 +1,156 @@
-# 🛒 CYBSOC Point of Sale (POS)
+# CybSOC POS
 
-> A high-performance, multi-platform Software-as-a-Service Point of Sale ecosystem.
-
-![CYBSOC POS](/apps/mobile/assets/icon.png)
-
-Welcome to the CYBSOC POS Monorepo! This repository contains the complete suite of applications required to run, manage, and scale the CYBSOC POS ecosystem. It is powered by React, Tauri, React Native, and Supabase.
+> **A full-stack point-of-sale system** built for offline-first retail operations, powered by CybSOC.
 
 ---
 
-## 📚 Official Documentation
+## Apps
 
-To understand how this massive system is glued together, please read our official documentation:
-
-- 🏗️ **[System Architecture](docs/ARCHITECTURE.md)**: Visual diagrams of how the platforms and backend databases communicate.
-- 🔄 **[CI/CD & Workflows](docs/WORKFLOWS.md)**: Flowcharts explaining the automated deployment pipelines and license authentication logic.
-- 📁 **[Monorepo Structure](docs/STRUCTURE.md)**: A breakdown of how the folders, dependencies, and Turborepo caching work.
-- 🗄️ **[Class Diagram & Models](docs/CLASS_DIAGRAM.md)**: The database schema and entity-relationship models for the Supabase backend.
-- 📐 **[Application Wireframes](docs/WIREFRAMES.md)**: UI layout blueprints and visual hierarchy for the three core applications.
+| App | Stack | Description |
+|-----|-------|-------------|
+| **POS Desktop** | Tauri v2 + React + Vite | Windows offline POS terminal |
+| **Retailer Mobile** | Expo / React Native | Android mobile app for retailers |
+| **Admin Panel** | React + Vite → GitHub Pages | SaaS license management dashboard |
 
 ---
 
-## 🚀 Quick Start (Development)
+## Architecture
 
-This project uses `pnpm` workspaces to manage all applications from the root folder.
+```
+POS/
+├── apps/
+│   ├── web/          # Tauri desktop app (Windows .exe)
+│   ├── mobile/       # Expo Android app (.apk)
+│   └── admin/        # GitHub Pages admin dashboard
+├── .github/
+│   └── workflows/
+│       ├── release-app.yml      # Builds Windows installer on git tag
+│       ├── build-mobile.yml     # EAS Android build trigger
+│       └── deploy-admin.yml     # Deploys admin to GitHub Pages
+```
 
-### 1. Install Dependencies
+**Backend:** Supabase (PostgreSQL + Auth + Edge Functions + Storage)
+
+---
+
+## Setup
+
+### Prerequisites
+- Node.js 20+, pnpm 9+
+- Rust (for Tauri builds)
+- Expo CLI + EAS CLI (for mobile)
+
+### Install
 ```bash
-# From the root directory, this will install dependencies for ALL apps
 pnpm install
 ```
 
-### 2. Run the CYBSOC Admin Portal
-The internal dashboard used to generate and manage SaaS license keys.
-```bash
-pnpm --filter admin run dev
+### Environment Variables
+Copy `.env.example` to `.env` in each app directory:
+
+**`apps/web/.env`**
+```
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
-### 3. Run the Desktop POS (Tauri)
-The primary Windows application used by retail cashiers.
-```bash
-pnpm --filter web run tauri dev
+**`apps/admin/.env`**
+```
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
-### 4. Run the Retailer Mobile App
-The mobile companion app built with React Native.
+**`apps/mobile/.env`**
+```
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+```
+
+### Development
+
 ```bash
-pnpm --filter mobile run start
+# POS Desktop
+pnpm --filter web tauri dev
+
+# Admin Panel
+pnpm --filter admin dev
+
+# Mobile
+cd apps/mobile && npx expo start
 ```
 
 ---
 
-## ☁️ Deployment Pipelines
+## Releasing
 
-We have fully automated our deployment processes using GitHub Actions. You never need to build binaries locally!
+### POS Desktop (Windows)
+Push a git tag to trigger the GitHub Actions release pipeline:
+```bash
+git tag v1.0.0
+git push origin main --tags
+```
+The workflow builds a signed Windows `.msi` and `.exe` installer and uploads them to GitHub Releases automatically.
 
-- **Admin Portal**: Automatically deploys to **GitHub Pages** whenever code in `apps/admin` is pushed to `main`.
-- **Desktop POS**: Automatically compiles an `.exe`, signs it cryptographically, and publishes a **GitHub Release** whenever you push a `v*` tag (e.g., `git tag v1.0.0 && git push origin v1.0.0`). The desktop app has an Auto-Updater that will seamlessly download these releases.
-- **Retailer Mobile App**: Automatically spins up an Expo Application Services (EAS) cloud server and outputs a Universal `.apk` whenever you push a `mobile-v*` tag (e.g., `git tag mobile-v1.0.0 && git push origin mobile-v1.0.0`).
+### Mobile App (Android)
+```bash
+cd apps/mobile
+npx eas-cli build --platform android --profile production
+```
+Download the `.apk` from the EAS build dashboard.
+
+### Admin Panel
+Any push to `main` that touches `apps/admin/` automatically deploys to GitHub Pages.
 
 ---
 
-## 🔐 Security
+## Features
 
-This project relies on **Row Level Security (RLS)** via Supabase. 
-- The master Service Role Key has been strictly ripped out of the frontend code.
-- Ensure your `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are provided in your GitHub Secrets for the CI/CD pipelines to build successfully.
+### POS Desktop
+- 🔐 Offline PIN authentication
+- 🛒 Full cart + barcode scanner support (F3)
+- 📦 Inventory management with stock tracking
+- 💳 Customer ledger & credit management
+- 📊 Sales reports & analytics dashboard
+- ☁️ Cloud backup & restore to Supabase
+- 🖨️ Standard + Thermal print receipts
+- 🔄 Auto-updater via GitHub Releases
+- 🌙 Dark/Light/System theme + accent colors
+
+### Retailer Mobile
+- 📱 Browse products & place orders
+- 🛒 Full cart management
+- ✅ Order confirmation with summary
+- 🔐 Supabase auth login
+
+### Admin Panel
+- 🏢 License overview dashboard
+- ⚙️ Issue, suspend, expire licenses
+- 📈 Active / Expired / Expiring-soon metrics
+
+---
+
+## Tech Stack
+
+| Layer | Tech |
+|-------|------|
+| Desktop shell | Tauri v2 (Rust) |
+| Frontend | React 19, Vite 8, TypeScript |
+| Styling | Vanilla CSS + custom design tokens |
+| State | Zustand |
+| Mobile | Expo SDK 54, React Native 0.81 |
+| Database (local) | SQLite via Tauri plugin |
+| Backend | Supabase (Postgres, Auth, Edge Functions) |
+| CI/CD | GitHub Actions |
+| Mobile builds | EAS (Expo Application Services) |
+
+---
+
+## License
+
+Proprietary — © 2025 CybSOC. All rights reserved.
+
+---
+
+<div align="center">
+  <sub>Powered by <strong>CybSOC</strong></sub>
+</div>

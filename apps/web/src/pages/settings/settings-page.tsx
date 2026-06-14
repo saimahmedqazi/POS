@@ -201,7 +201,7 @@ export default function SettingsPage() {
         >
           <div className="p-6">
             <p className="text-muted-foreground mb-6">
-              This will replace ALL local data with the backup from the cloud. Continue?
+              ⚠️ This will permanently replace ALL local data with the selected cloud backup. A safety backup will be created first. Are you sure?
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -218,7 +218,7 @@ export default function SettingsPage() {
                 disabled={restoringBackupId !== null}
                 className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
               >
-                {restoringBackupId ? 'Restoring...' : 'Restore'}
+                {restoringBackupId ? 'Restoring...' : 'Yes, Restore'}
               </button>
             </div>
           </div>
@@ -331,7 +331,7 @@ export default function SettingsPage() {
             >
               {loadingBackups
                 ? 'Loading...'
-                : 'Restore Backup'}
+                : 'Refresh List'}
             </Button>
 
           </div>

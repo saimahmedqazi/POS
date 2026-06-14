@@ -37,6 +37,27 @@ yarn-error.log*
 .DS_Store
 *.pem
 
+# Python virtual envs
+venv/
+.venv/
+env/
+
+# Signing keys & secrets
+*.key
+*.key.pub
+*.pfx
+*.p12
+~/.tauri/
+
+# Temp build scripts
+fill-square.js
+crop-icon.js
+process-icon.js
+pad-icon.js
+
+# Tauri debug artefacts
+runs.json
+
 node_modules
 .next
 dist

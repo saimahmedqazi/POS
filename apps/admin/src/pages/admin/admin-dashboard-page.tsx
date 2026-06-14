@@ -141,7 +141,7 @@ export default function AdminDashboardPage() {
         <div className="flex items-center justify-between">
           <PageHeader
             title="Admin Dashboard"
-            subtitle="POS SaaS overview"
+            subtitle="CybSOC POS — License Management"
           />
 
           <Button
