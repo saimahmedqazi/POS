@@ -12,7 +12,8 @@ export default defineConfig({
     tailwindcss(),
   ],
 
-  base: './',
+  // GitHub Pages deploys at /POS/ — this ensures assets load correctly
+  base: '/POS/',
 
   server: {
     host: true,
